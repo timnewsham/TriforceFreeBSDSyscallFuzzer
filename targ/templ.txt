@@ -144,7 +144,6 @@ TESTME 183 seteuid 1
 # XXX 205 undelete
 206 futimes fd {0;[1600000000,0,1600000000,0]}
 207 getpgid pid
-# 209 ppoll - gen2
 # 220 freebsd7_semctl - gen2
 # 221 semget - gen2
 # 222 semop - gen2
@@ -159,103 +158,260 @@ TESTME 183 seteuid 1
 232 clock_gettime 0 buf
 TESTME 233 clock_settime 0 [1600000000,0]
 234 clock_getres 0 buf
-
-
-
-
-#--------
-# XXX openbsd cruft
-# --------------------------
-7 getentropy buf sz
-#
-# tfork would be problematic to test from our driver...
-# when child returns its executing on new stack, but C code
-# doesn't know this and thinks its on old stack!
-# but.. lets just let it go anyway....
-8 __tfork [str,str,str] 24
-
-42 fsatat fd fn buf 0
-# struct sigaction=[funcptr,mask,flags]
-46 sigaction 15 [0,1,1] buf
-# 48 sigprocmask - gen2
-52 sigpending buf
-62 getfsstat buf sz 0
-63 statfs fn buf
-64 fstatfs fd buf
-# 65 fhstatfs - gen2
-# 72 kevent - gen2
-76 utimes fn {0;[1600000000,0,1600000000,0]}
-83 sendsyslog str sz
-84 utimensat fd fn {0;[1600000000,0,1600000000,0]} 2
-85 futimens fd {0;[1600000000,0,1600000000,0]}
-# 86 kbind - SKIP, see "two security checks" in kbind(2) man page
-
-
-91 nanosleep [1,0] buf
-# 93 accept4 - gen2
-# this one blocks.  note: 1600000000 is 2020/09/13
-SKIP 94 __thrsleep str 0 [1600000000,0] str buf
-99 getdents fd buf sz
-101 pipe2 buf 0
-102 dup3 fd 4 0
-# 103 sigreturn - gen2
-107 chflagsat fd fn 1 2
-# 108 pledge
-# 110 pselect - gen2
-# 111 sigsuspend - gen2
-112 sendsyslog2 str sz 0
-# 119 thrkill 
-TESTME 122 kill pid 2
-# note: 11=amd64_get_fsbase
-173 pread fd buf sz 123
-174 pwrite fd str sz 123
-# note: 3=SWAP_NSWAP
-193 swapctl 3 str 1
-# note: mmap has padding before off_t
-197 mmap 0 4096 7 0 fd 0 0
-209 utrace str str sz
-
-
+# XXX 235 ktimer_create
+# XXX 236 ktimer_delete
+# XXX 237 ktimer_settime
+# XXX 238 ktimer_gettime
+# XXX 239 ktimer_getoverrun
+240 nanosleep [1,0] buf
+# XXX 241 ffclock_getcounter
+# XXX 242 ffclock_setestimate
+# XXX 243 ffclock_getestimate
+# XXX 247 clock_getcpuclockid2
+# XXX 248 ntp_gettime
 # 250 minherit - gen2
+# XXX 251 rfork
+# XXX 252 openbsd_poll
 253 issetugid
 TESTME 254 lchown fn 1 2
-255 getsid pid
-# 256 msync - gen2
-263 pipe buf
-# 264 fhopen - gen2
-267 preadv fd [buf,sz,buf,sz] 2 123
-268 pwritev fd [str,sz,str,sz] 2 123
-269 kqueue
-271 mlockall 1
-272 munlockall
-281 getresuid buf buf buf
-TESTME 282 setresuid 1 2 3
-283 getresgid buf buf buf
-TESTME 284 setresgid 1 2 3
-286 mquery buf 4096 7 0 fd 0
-287 closefrom 2
-# 288 sigaltstack - gen2
-# 294 fhstat - gen2
-298 sched_yield
-299 getthrid
-# 301 __thrwakeup
-TESTME 302 __threxit buf
-# 303 __thrsigdivert
-304 __getcwd buf sz
-305 adjfreq {0;[1]} {0;buf}
-310 setrtable 0
-311 getrtable
-313 faccessat fd fn 4 1
-314 fchmodat fd fn 0666 2
-TESTME 315 fchownat fd fn 1 2 2
-317 linkat fd fn fd fn 4
-318 mkdirat fd fn 0666
-319 mkfifoat fd fn 0666
-TESTME 320 mknodat fd fn 060666 0x102
-321 openat fd fn 0 0666
-TESTME 322 readlinkat fd fn buf sz
-323 renameat fd fn fd fn
-324 symlinkat fn fd fn
-325 unlinkat fd fn 0
-329 __set_tcb buf
-330 __gettcb 
+# XXX 255 aio_read
+# XXX 256 aio_write
+# XXX 257 lio_listio
+272 getdents fd buf sz
+# XXX 274 lchmod
+TESTME 275 netbsd_lchown fn 1 2
+# XXX 276 lutimes
+# 277 netbsd_msync - gen2
+# XXX 278 nstat
+# XXX 279 nfstat
+# XXX 280 nlstat
+289 preadv fd [buf,sz,buf,sz] 2 123
+290 pwritev fd [str,sz,str,sz] 2 123
+# 297 freebsd4_fhstatfs - gen2
+# 298 fhopen - gen2
+# 299 fhstat - gen2
+# XXX 300 modnext
+# XXX 301 modstat
+# XXX 302 modfnext
+# XXX 303 modfind
+# XXX 304 kldload
+# XXX 305 kldunload
+# XXX 306 kldfind
+# XXX 307 kldnext
+# XXX 308 kldstat
+# XXX 309 kldfirstmod
+310 getsid pid
+TESTME 311 setresuid 1 2 3
+TESTME 312 setresgid 1 2 3
+# XXX 314 aio_return
+# XXX 315 aio_suspend
+# XXX 316 aio_cancel
+# XXX 317 aio_error
+# XXX 318 oaio_read
+# XXX 319 oaio_write
+# XXX 320 olio_listio
+321 yield
+324 mlockall 1
+325 munlockall
+326 __getcwd buf sz
+# XXX 327 sched_setparam
+# XXX 328 sched_getparam
+# XXX 329 sched_setscheduler
+# XXX 330 sched_getscheduler
+# XXX 331 sched_yield
+# XXX 332 sched_get_priority_max
+# XXX 333 sched_get_priority_min
+# XXX 334 sched_rr_get_interval
+335 utrace str str sz
+# XXX 336 freebsd4_sendfile
+# XXX 337 kldsym
+# XXX 338 jail
+# XXX 339 nnpfs_syscall
+# 340 sigprocmask - gen2
+# 341 sigsuspend - gen2
+# struct sigaction=[funcptr,mask,flags]
+342 freebsd4_sigaction 15 [0,1,1] buf
+343 sigpending buf
+# 344 freebsd4_sigreturn - gen2
+# XXX 345 sigtimedwait
+# XXX 346 sigwaitinfo
+# XXX 347 __acl_get_file
+# XXX 348 __acl_set_file
+# XXX 349 __acl_get_fd
+# XXX 350 __acl_set_fd
+# XXX 351 __acl_delete_file
+# XXX 352 __acl_delete_fd
+# XXX 353 __acl_aclcheck_file
+# XXX 354 __acl_aclcheck_fd
+# XXX 355 extattrctl
+# XXX 356 extattr_set_file
+# XXX 357 extattr_get_file
+# XXX 358 extattr_delete_file
+# XXX 359 aio_waitcomplete
+360 getresuid buf buf buf
+361 getresgid buf buf buf
+362 kqueue
+# 363 kevent - gen2
+# XXX 371 extattr_set_fd
+# XXX 372 extattr_get_fd
+# XXX 373 extattr_delete_fd
+# XXX 374 __setugid
+# XXX 376 eaccess
+# XXX 377 afs3_syscall
+# XXX 378 nmount
+# XXX 384 __mac_get_proc
+# XXX 385 __mac_set_proc
+# XXX 386 __mac_get_fd
+# XXX 387 __mac_get_file
+# XXX 388 __mac_set_fd
+# XXX 389 __mac_set_file
+# XXX 390 kenv
+# XXX 391 lchflags
+# XXX 392 uuidgen
+# XXX 393 sendfile
+# XXX 394 mac_syscall
+395 getfsstat buf sz 0
+396 statfs fn buf
+397 fstatfs fd buf
+# 398 fhstatfs - gen2
+# XXX 400 ksem_close
+# XXX 401 ksem_post
+# XXX 402 ksem_wait
+# XXX 403 ksem_trywait
+# XXX 404 ksem_init
+# XXX 405 ksem_open
+# XXX 406 ksem_unlink
+# XXX 407 ksem_getvalue
+# XXX 408 ksem_destroy
+# XXX 409 __mac_get_pid
+# XXX 410 __mac_get_link
+# XXX 411 __mac_set_link
+# XXX 412 extattr_set_link
+# XXX 413 extattr_get_link
+# XXX 414 extattr_delete_link
+# XXX 415 __mac_execve
+# struct sigaction=[funcptr,mask,flags]
+416 sigaction 15 [0,1,1] buf
+# 417 sigreturn - gen2
+# XXX 421 getcontext
+# XXX 422 setcontext
+# XXX 423 swapcontext
+# XXX 424 swapoff
+# XXX 425 __acl_get_link
+# XXX 426 __acl_set_link
+# XXX 427 __acl_delete_link
+# XXX 428 __acl_aclcheck_link
+# XXX 429 sigwait
+# XXX 430 thr_create
+# XXX 431 thr_exit
+# XXX 432 thr_self
+# XXX 433 thr_kill
+# XXX 434 _umtx_lock
+# XXX 435 _umtx_unlock
+# XXX 436 jail_attach
+# XXX 437 extattr_list_fd
+# XXX 438 extattr_list_file
+# XXX 439 extattr_list_link
+# XXX 441 ksem_timedwait
+# XXX 442 thr_suspend
+# XXX 443 thr_wake
+# XXX 444 kldunloadf
+# XXX 445 audit
+# XXX 446 auditon
+# XXX 447 getauid
+# XXX 448 setauid
+# XXX 449 getaudit
+# XXX 450 setaudit
+# XXX 451 getaudit_addr
+# XXX 452 setaudit_addr
+# XXX 453 auditctl
+# XXX 454 _umtx_op
+# XXX 455 thr_new
+# XXX 456 sigqueue
+# XXX 457 kmq_open
+# XXX 458 kmq_setattr
+# XXX 459 kmq_timedreceive
+# XXX 460 kmq_timedsend
+# XXX 461 kmq_notify
+# XXX 462 kmq_unlink
+# XXX 463 abort2
+# XXX 464 thr_set_name
+# XXX 465 aio_fsync
+# XXX 466 rtprio_thread
+# XXX 471 sctp_peeloff
+# XXX 472 sctp_generic_sendmsg
+# XXX 473 sctp_generic_sendmsg_iov
+# XXX 474 sctp_generic_recvmsg
+475 pread fd buf sz 123
+476 pwrite fd str sz 123
+# note: mmap has padding before off_t
+477 mmap 0 4096 7 0 fd 0 0
+# note: lseek has padding before off_t
+478 lseek fd 0 123 1
+479 truncate fn 123
+480 ftruncate fd 123
+# XXX 481 thr_kill2
+# XXX 482 shm_open
+# XXX 483 shm_unlink
+# XXX 484 cpuset
+# XXX 485 cpuset_setid
+# XXX 486 cpuset_getid
+# XXX 487 cpuset_getaffinity
+# XXX 488 cpuset_setaffinity
+489 faccessat fd fn 4 1
+490 fchmodat fd fn 0666 2
+TESTME 491 fchownat fd fn 1 2 2
+# XXX 492 fexecve
+# XXX 493 fstatat
+# XXX 494 futimesat
+495 linkat fd fn fd fn 4
+496 mkdirat fd fn 0666
+497 mkfifoat fd fn 0666
+TESTME 498 mknodat fd fn 060666 0x102
+499 openat fd fn 0 0666
+TESTME 500 readlinkat fd fn buf sz
+501 renameat fd fn fd fn
+502 symlinkat fn fd fn
+503 unlinkat fd fn 0
+# XXX 504 posix_openpt
+# XXX 505 gssd_syscall
+# XXX 506 jail_get
+# XXX 507 jail_set
+# XXX 508 jail_remove
+509 closefrom 2
+# 510 semctl - gen2
+# XXX 511 msgctl
+# XXX 512 shmctl
+# XXX 513 lpathconf
+# XXX 515 __cap_rights_get
+# XXX 516 cap_enter
+# XXX 517 cap_getmode
+# XXX 518 pdfork
+# XXX 519 pdkill
+# XXX 520 pdgetpid
+# 522 pselect - gen2
+# XXX 523 getloginclass
+# XXX 524 setloginclass
+# XXX 525 rctl_get_racct
+# XXX 526 rctl_get_rules
+# XXX 527 rctl_get_limits
+# XXX 528 rctl_add_rule
+# XXX 529 rctl_remove_rule
+# XXX 530 posix_fallocate
+# XXX 531 posix_fadvise
+# XXX 532 wait6
+# XXX 533 cap_rights_limit
+# XXX 534 cap_ioctls_limit
+# XXX 535 cap_ioctls_get
+# XXX 536 cap_fcntls_limit
+# XXX 537 cap_fcntls_get
+# XXX 538 bindat
+# XXX 539 connectat
+540 chflagsat fd fn 1 2
+# 541 accept4 - gen2
+542 pipe2 buf 0
+# XXX 543 aio_mlock
+# XXX 544 procctl
+# 545 ppoll - gen2
+# XXX 546 futimens
+547 utimensat fd fn {0;[1600000000,0,1600000000,0]} 2
