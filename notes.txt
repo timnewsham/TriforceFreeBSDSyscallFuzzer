@@ -66,11 +66,10 @@ _EOF_
 
 
 
+----
+raw notes
 
-
-../TriforceAFL/afl-qemu-system-trace -m 256M -nographic -drive driver=privmem,file=disk.bin
-
-
+../TriforceAFL/afl-qemu-system-trace -m 256M -nographic -drive format=raw,privmem:file=disk.bin
 
 mnt
 mnt -u
