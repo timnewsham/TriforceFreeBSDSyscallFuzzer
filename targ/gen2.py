@@ -67,9 +67,10 @@ mk('030_accept',
 # verified manually, only passes when we find the ephemeral addr
 # and connect to it
 # assumes tcpfd will be 3 when tests run
-mk('093_accept4',
+accept4 = 541
+mk('541_accept4',
     (listen, tcpfd, 5),
-    (accept, 3, Alloc(16), intptr(16)),
+    (accept4, 3, Alloc(16), intptr(16)),
     notest=True)
 
 getpeername = 31
@@ -90,18 +91,18 @@ mk('133_sendto',
 # verified manually - passes when sending udp packet to 127.0.0.1:1234
 # assumes udpfd will be 3
 recvfrom = 29
-mk('133_recvfrom',
+mk('029_recvfrom',
     (bind, udpfd, sockInAddr(0x7f000001, 1234), sz),
     (recvfrom, 3, Alloc(64), sz, 0, Alloc(16), intptr(16)),
     notest=True)
 
-sigprocmask = 48
-mk('048_sigprocmask',
+sigprocmask = 340
+mk('340_sigprocmask',
     (sigprocmask, 1, intptr(1), intptr(0)))
 
 # always "errors" by definition. also blocks
-sigsuspend = 111
-mk('111_sigsuspend',
+sigsuspend = 341
+mk('341_sigsuspend',
     (sigsuspend, intptr(1)),
     notest=True)
 
@@ -125,48 +126,48 @@ mk('021_mount',
 # in to 264_fhopen! so we include one with a buffer for the fuzzer
 # to try to work with.
 getfh = 161
-fhopen = 264
+fhopen = 298
 # XXX a better starting filehandle would be one that we knew
 # would work in our flashrd system on one of the tmpfs's.
 # XXX investigate if there is a stable one we can use.
 fh = String('\x00' * 20)
-mk('264_fhopen',
+mk('298_fhopen',
     (getfh, StringZ("/.profile"), Alloc(20)),
     (fhopen, Ref(0,1), 0),
     notest=True)
-mk('264_fhopen',
+mk('298_fhopen',
     (fhopen, fh, 0),
     notest=True)
 
 # requires root. verified manually
-fhstat = 294
-mk('294_fhstat',
+fhstat = 299
+mk('299_fhstat',
     (getfh, StringZ("/.profile"), Alloc(20)),
     (fhstat, Ref(0,1), Alloc(1024)),
     notest=True)
-mk('294_fhstat',
+mk('299_fhstat',
     (fhstat, fh, Alloc(1024)),
     notest=True)
 
 # requires root. verified manually
-fhstatfs = 65
-mk('065_fhstatfs',
+fhstatfs = 398
+mk('398_fhstatfs',
     (getfh, StringZ("/.profile"), Alloc(20)),
     (fhstatfs, Ref(0,1), Alloc(1024)),
     notest=True)
-mk('065_fhstatfs',
+mk('398_fhstatfs',
     (fhstatfs, fh, Alloc(1024)),
     notest=True)
 
-select = 71
+select = 93
 bit0    = "\x01\x00\x00\x00"
 bitNone = "\x00\x00\x00\x00"
 time_1sec = Vec64(1, 0)
-mk('072_select',
+mk('093_select',
     (select, 3, bit0, bitNone, bitNone, time_1sec))
 
-pselect = 110
-mk('110_pselect',
+pselect = 522
+mk('522_pselect',
     (pselect, 3, bit0, bitNone, bitNone, time_1sec, intptr(1)))
 
 def mkPollFd(fd, ev, rev) :
@@ -174,13 +175,13 @@ def mkPollFd(fd, ev, rev) :
 
 # verified
 # sometimes blocks in testing, why??
-ppoll = 109
+ppoll = 545
 pollfds = Vec64(mkPollFd(0,1,0), mkPollFd(-1, 1, 0))
-mk('109_ppoll',
+mk('545_ppoll',
     (ppoll, pollfds, sz, time_1sec, intptr(1)),
     notest=True)
 
-kevent = 72
+kevent = 363 
 kq = StdFile(38)
 ev_add = 1
 ev_disable = 8
@@ -200,14 +201,14 @@ changes = Vec64(
     0x12345
     )
 events = Alloc(5 * 32)
-mk('072_kevent',
+mk('363_kevent',
     (kevent, kq, changes, 2, events, 5, time_1sec))
-mk('072_kevent',
+mk('363_kevent',
     (kevent, kq, 0, 0, events, 5, time_1sec))
 
-sigaltstack = 288
+sigaltstack = 53
 altstack = Vec64(Alloc(4*4096), 4*4096, 0)
-mk('288_sigaltstack',
+mk('053_sigaltstack',
     (sigaltstack, altstack, Alloc(24)))
 
 fcntl = 92
@@ -237,7 +238,7 @@ for fd in (0, filefd, sockpairfd) :
 
 # note: mmap needs extra padding arg!
 mprotect = 74
-mmap = 197
+mmap = 477    # XXX others exist
 addr = 0x100000
 map_fixed = 0x10
 map_anon = 0x1000
@@ -267,16 +268,16 @@ mk('250_minherit',
     (mmap, addr, 4*4096, 7, map_fixed|map_anon, neg1, 0, 0),
     (minherit, addr, 2*4096, MAP_INHERIT_NONE))
 
-msync = 256
+msync = 65 # XXX others exist
 ms_async = 1
-mk('256_msync',
+mk('065_msync',
     (mmap, addr, 4*4096, 7, map_fixed|map_anon, neg1, 0, 0),
     (msync, addr, 2*4096, ms_async))
 
 # XXX this is broken. dont think we can get a good test for this,
 # but want it in our corpus for testing.
-sigreturn = 103
-mk('103_sigreturn',
+sigreturn = 417 # XXX others exist
+mk('417_sigreturn',
     (sigreturn, 224*'\x00'))
 
 semget = 221
@@ -290,30 +291,30 @@ def mkSemBuf(num, op, flg) :
 
 # assumes the first semaphore is 65536
 # XXX unverfied.. having problems reclaiming semid's 
-semop = 290
+semop = 222
 semops = Vec64(mkSemBuf(0,1,0), mkSemBuf(1,1,0), mkSemBuf(2,1,0))
-mk('290_semop',
+mk('222_semop',
     (semget, ipc_private, 5, ipc_creat | 0666),
     (semop, 65536, semops, 3),
     notest=True)
 
 # XXX unverified
 # assumes the first semaphore is 65536
-__semctl = 295
+semctl = 510  # XXX others exist
 setval = 8
-mk('295_semctl',
+mk('510_semctl',
     (semget, ipc_private, 5, ipc_creat | 0666),
-    (__semctl, 65536, 0, setval, 1))
+    (semctl, 65536, 0, setval, 1))
 
 # two of these only works for root.
-sysctl = 202
+__sysctl = 202
 kern_maxproc = Vec32(1,6)
 mk('202_sysctl',
-    (sysctl, kern_maxproc, sz, Alloc(4), Vec64(4), intptr(1309), 4),
+    (__sysctl, kern_maxproc, sz, Alloc(4), Vec64(4), intptr(1309), 4),
     notest=True)
 mk('202_sysctl',
-    (sysctl, kern_maxproc, sz, 0, Vec64(4), intptr(1308), 4),
+    (__sysctl, kern_maxproc, sz, 0, Vec64(4), intptr(1308), 4),
     notest=True)
 mk('202_sysctl',
-    (sysctl, kern_maxproc, sz, Alloc(4), Vec64(4), 0, 4))
+    (__sysctl, kern_maxproc, sz, Alloc(4), Vec64(4), 0, 4))
 
