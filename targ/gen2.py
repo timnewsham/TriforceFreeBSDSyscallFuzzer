@@ -7,12 +7,12 @@ from gen import *
 def sockInAddr(host, port, sz=16, family=2) :
     h = struct.pack('!I', host)
     p = struct.pack('!H', port)
-    return struct.pack('@BB2s4sxxxxxxxx', sz, family, p, h)
+    return String(struct.pack('@BB2s4sxxxxxxxx', sz, family, p, h))
 
 def intptr(n) :
     return String(struct.pack('@I', n))
 
-TEST = 0
+TEST = 1
 
 def nextFile(nm, indexes={}) :
     if nm not in indexes :

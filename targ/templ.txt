@@ -22,8 +22,8 @@ TESTME 22 unmount fn 0
 TESTME 23 setuid 1
 24 getuid
 25 geteuid
-# note: 9 = PT_ATTACH
-26 ptrace 9 pid str 0
+# note: 10 = PT_ATTACH
+26 ptrace 10 pid str 0
 # 27 recvmsg - TODO: separate fuzzer?
 # 28 sendmsg - TODO: separate fuzzer?
 # 29 recvfrom - gen2
@@ -347,7 +347,7 @@ TESTME 312 setresgid 1 2 3
 # note: mmap has padding before off_t
 477 mmap 0 4096 7 0 fd 0 0
 # note: lseek has padding before off_t
-478 lseek fd 0 123 1
+478 lseek fd 123 1
 479 truncate fn 123
 480 ftruncate fd 123
 # XXX 481 thr_kill2
@@ -358,13 +358,13 @@ TESTME 312 setresgid 1 2 3
 # XXX 486 cpuset_getid
 # XXX 487 cpuset_getaffinity
 # XXX 488 cpuset_setaffinity
-489 faccessat fd fn 4 1
-490 fchmodat fd fn 0666 2
+489 faccessat fd fn 4 0
+490 fchmodat fd fn 0666 0
 TESTME 491 fchownat fd fn 1 2 2
 # XXX 492 fexecve
 # XXX 493 fstatat
 # XXX 494 futimesat
-495 linkat fd fn fd fn 4
+495 linkat fd fn fd fn 0
 496 mkdirat fd fn 0666
 497 mkfifoat fd fn 0666
 TESTME 498 mknodat fd fn 060666 0x102
@@ -407,11 +407,11 @@ TESTME 500 readlinkat fd fn buf sz
 # XXX 537 cap_fcntls_get
 # XXX 538 bindat
 # XXX 539 connectat
-540 chflagsat fd fn 1 2
+540 chflagsat fd fn 1 0
 # 541 accept4 - gen2
 542 pipe2 buf 0
 # XXX 543 aio_mlock
 # XXX 544 procctl
 # 545 ppoll - gen2
 # XXX 546 futimens
-547 utimensat fd fn {0;[1600000000,0,1600000000,0]} 2
+547 utimensat fd fn {0;[1600000000,0,1600000000,0]} 0

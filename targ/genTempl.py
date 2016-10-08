@@ -51,8 +51,8 @@ def genArg(a) :
             Error("bad string arg %r" % a)
 	return [StringZ(a[1:-1])]
     elif a == 'fd' :		# file descriptor options
-	# stdfile0 = "/"
-        return [Num(1), File("stuffhere"), StdFile(0)]
+	# stdfile0 = "/", stdfile1 = tcp socket
+        return [Num(1), File("stuffhere"), StdFile(0), StdFile(1)]
     elif a == 'fn' :		# filename options
         return [StringZ("/tmp/file9"), StringZ("/"), StringZ("/tmp"), Filename("#!/bin/sh\necho hi\n")]
     elif a == 'str' :		# initialized string/buffer options
@@ -62,7 +62,7 @@ def genArg(a) :
     elif a == 'sz' :		# sizes
         return [Len()]
     elif a == 'pid' :		# proc id options
-        return [Num(0), Num(0xffffffffffffffff), MyPid, PPid, ChildPid]
+        return [Num(0), Num(0xffffffffffffffff), ChildPid, MyPid] # skip PPid
     else :
         raise Error("bad arg type %r" % a)
 
@@ -81,7 +81,7 @@ def cross(xs) :
 def genArgs(gens) :
     return cross(genArg(g) for g in gens)
 
-TEST=0
+TEST=1
 
 def genCalls(nr, nm, args, notest) :
     #print nr, nm, args
