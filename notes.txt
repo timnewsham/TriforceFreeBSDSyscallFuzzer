@@ -1,0 +1,79 @@
+
+- Use 10.3 installer for 64-bit x86.
+- install a full system in VM
+- get FBSD fuzzer files and build the targ files in the fbsd vm
+  - pkg install python
+  - pkg install git
+  - git clone git clone https://github.com/nccgroup/TriforceOpenBSDFuzzer
+  - cd fuzzer/targ
+  - make
+
+- install a small system on IDE with 1.3G hard disk 
+  with lib32 but no games, ports or mans
+  - included ipv6 addr on ethernet
+  - added root and user users.
+  - did not add docs
+- take drive from small system and attach it to full system
+  - extract image
+    - dd if=/dev/da0 of=disk.bin
+  - mount the image for edits
+    - mdconfig -a -t vnode -u 0 -f $HOME/disk.bin
+    - mount /dev/md0s1a /mnt
+    - ROOT=/mnt
+  - edit image
+    - echo 'console="comconsole"' >> $ROOT/boot/loader.conf
+    - cp $FUZZER/target/driver $ROOT/bin
+    - mkdir $ROOT/etc/heater
+    - cp $FUZZER/target/inputs/* $ROOT/etc/heater/
+    - mv $ROOT/etc/rc $ROOT/etc/rc.orig
+    - cat > $ROOT/etc/rc <<_EOF_
+#
+# minimal initialization and then invoke fuzzer driver
+# never return / never invoke getty/login.
+#
+
+echo "running rc!"
+export TERM=vt220
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+mount -u -o rw /
+
+echo warm JIT cache
+find / >/dev/null
+for fn in /etc/heater/* ; do
+    echo $fn
+    /bin/driver -t < $fn
+done
+echo
+
+echo start testing
+/bin/driver -v
+#/bin/testPrivmem
+#/bin/testPanic
+#/bin/sh -i
+
+echo "exiting"
+/sbin/shutdown -p now
+_EOF_
+  - unmount the image
+    - umount /mnt
+    - mdconfig -d -u 0
+- download the disk image and the kernel to your fuzzing host's fuzzHost dir
+  - cd $FUZZER/fuzzHost
+  - scp fbsdvm:/boot/kernel/kernel fbsdvm:$HOME/disk.bin .
+- if you want to debug, get source matching your kernel
+  - fetch ftp://ftp.freebsd.org/pub/FreeBSD/releases/amd64/10.3-RELEASE/src.txz
+  - tar -C / -xzvf src.txz usr/src/sys
+
+
+
+
+
+../TriforceAFL/afl-qemu-system-trace -m 256M -nographic -drive driver=privmem,file=disk.bin
+
+
+
+mnt
+mnt -u
+
+
+

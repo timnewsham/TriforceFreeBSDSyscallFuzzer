@@ -1,0 +1,26 @@
+#!/bin/sh
+
+AFL=${TAFL:-../../TriforceAFL}
+IMG=disk.bin
+KERN=kernel
+
+getSym() {
+    name=$1
+    gdb -batch -ex "p/x &$name" $KERN 2>/dev/null |sed 's/^.*0x/ffffffff/g' 
+}
+
+PANIC=`getSym shutdown_panic`
+LOGSTORE=0   #XXX for now
+
+#test -d inputs || mkdir inputs
+#test -f inputs/ex1 || ./gen.py
+make testAfl || exit 1
+
+./testAfl $AFL/afl-qemu-system-trace \
+    -L $AFL/qemu_mode/qemu/pc-bios \
+    -m 128M -nographic -drive format=raw,file=privmem:${IMG} \
+    -aflPanicAddr "$PANIC" \
+    -aflDmesgAddr "$LOGSTORE" \
+    -aflFile @@ \
+    -- "$@"
+
