@@ -4,6 +4,15 @@ AFL=${TAFL:-../../TriforceAFL}
 IMG=disk.bin
 KERN=kernel
 
+# you need a GDB that can deal with "kernel" properly
+# configure GDB with "./configure --target=x86_64-freebsd"
+GDB=x86_64-freebsd-gdb
+
+if [ ! -x "`which $GDB`" ] ; then
+    echo "You need a GDB!  I cant find $GDB"
+    exit 1
+fi
+
 # hokey arg parsing, sorry!
 if [ "x$1" = "x-C" ] ; then # continue
     INP="-"
@@ -22,7 +31,7 @@ fi
 
 getSym() {
     name=$1
-    gdb -batch -ex "p/x &$name" $KERN 2>/dev/null |sed 's/^.*0x//g'
+    $GDB -batch -ex "p/x &$name" $KERN 2>/dev/null |sed 's/^.*0x//g'
 }
 
 PANIC=`getSym shutdown_panic`
