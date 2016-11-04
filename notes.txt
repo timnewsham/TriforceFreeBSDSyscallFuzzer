@@ -22,6 +22,7 @@
     - ROOT=/mnt
   - edit image
     - echo 'console="comconsole"' >> $ROOT/boot/loader.conf
+    - echo 'autoboot_delay="1"' >> $ROOT/boot/loader.conf
     - cp $FUZZER/target/driver $ROOT/bin
     - mkdir $ROOT/etc/heater
     - cp $FUZZER/target/inputs/* $ROOT/etc/heater/
@@ -60,11 +61,21 @@ _EOF_
 - download the disk image and the kernel to your fuzzing host's fuzzHost dir
   - cd $FUZZER/fuzzHost
   - scp fbsdvm:/boot/kernel/kernel fbsdvm:$HOME/disk.bin .
-- if you want to debug, get source matching your kernel
+- on your target, you'll need to build gdb for freebsd and put it in
+  yoru path as x86_64-freebsd-gdb
+  - tar -xzf gdb-7.12
+  - cd gdb-7.12
+  - ./configure --target=x86_64-freebsd --prefix=/some/dir
+  - make
+  - make install
+    (or: cp gdb/gdb /some/dir/bin/x86_64-freebsd-gdb)
+- if you want to debug, get source matching your kernel, and get kernel with
+  debug symbols:
   - fetch ftp://ftp.freebsd.org/pub/FreeBSD/releases/amd64/10.3-RELEASE/src.txz
   - tar -C / -xzvf src.txz usr/src/sys
-
-
+  - cd fuzzHost
+  - scp fbsdvm:/boot/kernel/kernel.symbols fbsdvm:$HOME/disk.bin .
+  - x86_64-freebsd-gdb -ex "directory .." -ex "target remote :1234" ./kernel.symbols
 
 ----
 raw notes
@@ -73,6 +84,5 @@ raw notes
 
 mnt
 mnt -u
-
 
 
