@@ -34,7 +34,7 @@ getSym() {
     $GDB -batch -ex "p/x &$name" $KERN 2>/dev/null |sed 's/^.*0x//g'
 }
 
-PANIC=`getSym shutdown_panic`
+PANIC=`getSym panic`
 LOGSTORE=0   #XXX for now
 
 #test -d inputs || mkdir inputs
