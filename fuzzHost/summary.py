@@ -2,6 +2,8 @@
 """
 Summarize whats in the repro logs.
 Run: script -c "./runTest outputs/*/crashes/id*"; ./summary.py |sort -u
+
+expects ../usr/src/sys to have freebsd kernel sources
 """
 
 import sys, re
@@ -18,7 +20,11 @@ def proc(ls) :
     if not ls :
         return
     keep = ''
+    fn = None
     for l in ls :
+        m = re.search('Input from ([^ ]*) at', l)
+        if m :
+            fn = m.group(1)
         if l.startswith('call') :
             nr = int(l.split(' ')[-1])
             keep += callnr.get(nr, '???') + ' '
@@ -27,6 +33,8 @@ def proc(ls) :
             l.startswith('test ended')) :
             keep += l + ' '
     if keep and (not SKIPKNOWN or not isKnown(keep)) :
+        if SHOWFN :
+            print fn,
         print keep
 
 callnr = dict()
@@ -37,6 +45,7 @@ for l in file('../usr/src/sys/sys/syscall.h') :
         num = int(ws[2])
         callnr[num] = nm
 
+SHOWFN = 1
 SKIPKNOWN = 1
 
 f = file('typescript','r')
