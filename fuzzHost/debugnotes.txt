@@ -1,0 +1,25 @@
+- keep a copy of usr/src/sys in ..,  we search this for symbols.
+  easiest way is to extract the src tarball in ..
+- build a copy of x86_64-freebsd-gdb, supporting target x86_64 freebsd.
+- use runSh script to run qemu with -s flag:
+  #!/bin/sh
+  AFL=${TAFL:-../../TriforceAFL}
+  $AFL/afl-qemu-system-trace -s -nographic -m 64M \
+      -drive format=raw,file=privmem:disk.bin
+- interrupt booting by hitting space a bunch of times until the
+  boot menu comes up, then hit 2 for single-user mode
+- hit enter to run /bin/sh when asked
+- run gdb on the host to debug the kernel.  dont attach until
+  after the kernel starts booting, set your breakpoint appropriately 
+  for your test case.  make sure you have kernel.symbols from your /boot/kernel
+  directory, this is the one that has symbols in it.
+  #!/bin/sh
+  exec x86_64-freebsd-gdb -ex "directory .." -ex "target remote :1234" ./kernel.symbols
+- use the /bin/runtest test case to run a test case
+  #!/bin/sh
+  mount -o rw -u /
+  uudecode -o /tmp/testcase
+  driver -tv </tmp/testcase
+- paste in a uuencoded copy of the test case. if all goes well, you're
+  dropped into your breakpoint.
+  
