@@ -12,7 +12,8 @@ results.  These results are trusted by atrtc_settime() which calls
 bin2bcd(ct.day).  bin2bcd is implemented with a table lookup, and
 when ct.day is out-of-bounds, it results in an out-of-bounds read
 to the bin2bcd_data[] table.  This can lead to a page fault in the
-kernel and a panic.
+kernel and a panic. To trigger this issue you must have the
+PRIV_CLOCK_SETTIME privilege.
 
 Specifically when ts->tv_sec is large or negative on 64-bit platforms,
 the clock_ts_to_ct function calculations:
@@ -29,6 +30,9 @@ overflow in ct->year, and an out-of-range value in ct->day,
     ct->sec  = rsec;
 and out-of-range values for ct->min and ct->sec (due to modulus
 operations on negative values).
+
+Verified on FreeBSD 10.3-RELEASE kernel on amd64 platform with
+QEMU "hardware".
 
 Recommendation:
 The "years" and "days" variables in clock_ts_to_ct() should be
@@ -68,6 +72,9 @@ KDB: stack backtrace:
 #9 0xffffffff80963c96 at sys_clock_settime+0x86
 #10 0xffffffff80d5694f at amd64_syscall+0x40f
 #11 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+
+Reported: 2016-11-07
+https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=214300
  */
 
 #include <stdio.h>
