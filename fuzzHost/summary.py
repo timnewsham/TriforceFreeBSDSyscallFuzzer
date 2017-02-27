@@ -6,11 +6,22 @@ Run: script -c "./runTest outputs/*/crashes/id*"; ./summary.py |sort -u
 expects ../usr/src/sys to have freebsd kernel sources
 """
 
-import sys, re
+import sys, re, os
 
 known = [
     'ended with status 9', # ignore all timeouts
     'ended with status 0', # ignore all unreproducibles
+    'clock_settime.*panic: page fault', # clock settime integer problem, settime.txt
+    'settimeofday.*panic: page fault', # settimeofday integer problem, settime.txt
+
+
+    #XXX not yet analyzed
+    'mount.*page fault', # mount kldload unreadable program headers, mount.txt
+    'mount.*general protection fault', # mount kldload unreadable program headers, mount.txt
+    'ktrace.*general protection fault', # something about malloc.. ktrace.txt
+    'pread.*page fault', # pread.txt
+    'pwrite.*page fault', # pwrite.txt
+    'nfssvc.*panic', # various nfssvc panics, nfssvc.txt
 ]
 
 def isKnown(x) :
@@ -45,7 +56,7 @@ for l in file('../usr/src/sys/sys/syscall.h') :
         num = int(ws[2])
         callnr[num] = nm
 
-SHOWFN = 1
+SHOWFN = 1 if os.getenv("SHOWFN") else 0
 SKIPKNOWN = 1
 
 f = file('typescript','r')

@@ -18,7 +18,7 @@ LOGSTORE=0   #XXX for now
 make testAfl || exit 1
 
 ./testAfl $AFL/afl-qemu-system-trace \
-    -L $AFL/qemu_mode/qemu/pc-bios \
+    -s -L $AFL/qemu_mode/qemu/pc-bios \
     -m 128M -nographic -drive format=raw,file=privmem:${IMG} \
     -aflPanicAddr "$PANIC" \
     -aflDmesgAddr "$LOGSTORE" \
