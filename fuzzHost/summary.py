@@ -11,16 +11,15 @@ import sys, re, os
 known = [
     'ended with status 9', # ignore all timeouts
     'ended with status 0', # ignore all unreproducibles
-    'clock_settime.*panic: page fault', # clock settime integer problem, settime.txt
-    'settimeofday.*panic: page fault', # settimeofday integer problem, settime.txt
-    'pread.*page fault', # pread.txt
-    'pwrite.*page fault', # pwrite.txt
-    'ktrace.*general protection fault', # something about malloc.. ktrace.txt
 
+    # analyzed.. 
+    'calltrap\+0x[0-9a-f]+ freebsd6_pread', # pread.txt
+    'calltrap\+0x[0-9a-f]+ freebsd6_pwrite', # pwrite.txt
+    'resettodr', # settime.txt
+    'malloc\+0x[0-9a-f]+ ktrgenio', # kevent.txt
+    'calltrap\+0x[0-9a-f]+ linker_load_module', # mount/kldload, mount.txt
 
     #XXX not yet analyzed
-    'mount.*page fault', # mount kldload unreadable program headers, mount.txt
-    'mount.*general protection fault', # mount kldload unreadable program headers, mount.txt
     'nfssvc.*panic', # various nfssvc panics, nfssvc.txt
 ]
 
@@ -31,6 +30,7 @@ def proc(ls) :
     if not ls :
         return
     keep = ''
+    stack = ''
     fn = None
     for l in ls :
         m = re.search('Input from ([^ ]*) at', l)
@@ -43,9 +43,14 @@ def proc(ls) :
             l.startswith('panic') or
             l.startswith('test ended')) :
             keep += l + ' '
+        m = re.search('^#[0-9]+ 0x[0-9a-f]+ at (.*)$', l)
+        if m :
+            stack += m.group(1) + ' '
+    if stack :
+        keep += 'stack: ' + stack
     if keep and (not SKIPKNOWN or not isKnown(keep)) :
         if SHOWFN :
-            print fn,
+            print fn
         print keep
 
 callnr = dict()
