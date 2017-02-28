@@ -1,0 +1,70 @@
+summary:
+  calling pread or pwrite on shm handle causes a null pointer deref 
+  in kern_pwritev/kern_preadv because fp->f_vnode is NULL.
+  
+
+Input from outputs/m0/crashes/id:000033,sig:00,src:004979,op:flip1,pos:105 at time 1481318580.046198
+test running in pid 11730
+call 482
+arg 0: argNum 1
+arg 1: argNum 2
+arg 2: argNum e3fe00ad000000
+arg 3: argNum 0
+arg 4: argNum f7
+arg 5: argNum 0
+arg 6: argNum 0
+call 173
+arg 0: argNum 3
+arg 1: argAlloc 800c0a400 - allocated 400 bytes
+arg 2: argBuflen 400
+arg 3: argNum 0
+arg 4: argNum 8000000000000700
+arg 5: argNum 4
+arg 6: argNum 3000000001d0000
+read 156 bytes, parse result 0 nrecs 2
+syscall 482 (1, 2, e3fe00ad000000, 0, f7, 0)
+syscall 173 (3, 800c0a400, 400, 0, 8000000000000700, 4)
+
+
+Fatal trap 12: page fault while in kernel mode
+cpuid = 0; apic id = 00
+fault virtual address   = 0x1d4
+fault code      = supervisor read data, page not present
+instruction pointer = 0x20:0xffffffff809a7f1d
+stack pointer           = 0x28:0xfffffe0011ddda30
+frame pointer           = 0x28:0xfffffe0011ddda80
+code segment        = base 0x0, limit 0xfffff, type 0x1b
+            = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags    = interrupt enabled, IOPL = 0
+current process     = 26 (driver)
+trap number     = 12
+panic: page fault
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff8098e390 at kdb_backtrace+0x60
+#1 0xffffffff80951066 at vpanic+0x126
+#2 0xffffffff80950f33 at panic+0x43
+#3 0xffffffff80d55f7b at trap_fatal+0x36b
+#4 0xffffffff80d5627d at trap_pfault+0x2ed
+#5 0xffffffff80d558fa at trap+0x47a
+#6 0xffffffff80d3b8d2 at calltrap+0x8
+#7 0xffffffff809a7fea at freebsd6_pread+0x6a
+#8 0xffffffff80d5694f at amd64_syscall+0x40f
+#9 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+
+--------------
+
+
+kern_preadv
+dofileread
+    else if (offset < 0 && fp->f_vnode->v_type != VCHR)
+(gdb) print fp->f_vnode
+$13 = (struct vnode *) 0x0
+(gdb) print fp->f_ops
+$15 = (struct fileops *) 0xffffffff814b5df0 <shm_ops>
+
+
+shm_open -> SYS_freebsd6_pread or pread
+
+similar:
+shm_open -> SYS_freebsd6_pwrite or pwrite

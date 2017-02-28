@@ -1,0 +1,110 @@
+
+
+Input from outputs/s10/crashes/id:000133,sig:00,src:017628,op:havoc,rep:4 at time 1481318610.943753
+test running in pid 24825
+call 4
+arg 0: argFile 3 - 3 bytes from /tmp/file0
+arg 1: argNum 400000
+arg 2: argNum 1e
+arg 3: argNum 140000
+arg 4: argNum 76717f00000000
+arg 5: argNum 1000003df
+arg 6: argNum 83000000
+call 21
+arg 0: argFilename 800c0a040 - 79 bytes from /tmp/file0
+arg 1: argNum 232100737404
+arg 2: argNum ffff7fff00010000
+arg 3: argNum 400000000
+arg 4: argNum 8102000000
+arg 5: argAlloc 800c0b058 - allocated 0 bytes
+arg 6: argNum 0
+read 296 bytes, parse result 0 nrecs 2
+syscall 4 (3, 400000, 1e, 140000, 76717f00000000, 1000003df)
+syscall 21 (800c0a040, 232100737404, ffff7fff00010000, 400000000, 8102000000, 800c0b058)
+kldload: /tmp/file0: Unreadable program headers
+
+
+Fatal trap 12: page fault while in kernel mode
+cpuid = 0; apic id = 00
+fault virtual address   = 0xfffffa8102599000
+fault code      = supervisor read data, page not present
+instruction pointer = 0x20:0xffffffff8097799e
+stack pointer           = 0x28:0xfffffe0011ddd520
+frame pointer           = 0x28:0xfffffe0011ddd6e0
+code segment        = base 0x0, limit 0xfffff, type 0x1b
+            = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags    = interrupt enabled, IOPL = 0
+current process     = 26 (driver)
+trap number     = 12
+panic: page fault
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff8098e390 at kdb_backtrace+0x60
+#1 0xffffffff80951066 at vpanic+0x126
+#2 0xffffffff80950f33 at panic+0x43
+#3 0xffffffff80d55f7b at trap_fatal+0x36b
+#4 0xffffffff80d5627d at trap_pfault+0x2ed
+#5 0xffffffff80d558fa at trap+0x47a
+#6 0xffffffff80d3b8d2 at calltrap+0x8
+#7 0xffffffff8092ab0d at linker_load_module+0x9ad
+#8 0xffffffff8092c1b3 at kern_kldload+0xc3
+#9 0xffffffff809eb8e1 at vfs_byname_kld+0x31
+#10 0xffffffff809f03b0 at sys_mount+0xa0
+#11 0xffffffff80d5694f at amd64_syscall+0x40f
+#12 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+
+
+
+----
+variation:
+
+Input from outputs/s11/crashes/id:000129,sig:00,src:017186+016205,op:splice,rep:4 at time 1481318664.408972
+test running in pid 14985
+call 4
+arg 0: argFile 3 - 3 bytes from /tmp/file0
+arg 1: argNum 400000
+arg 2: argNum 20
+arg 3: argAlloc 800c0a058 - allocated 0 bytes
+arg 4: argNum 140000000076717f
+arg 5: argNum 1
+arg 6: argNum 3df0000000000
+call 21
+arg 0: argFilename 800c0b040 - 63 bytes from /tmp/file0
+arg 1: argNum 232100737404
+arg 2: argNum ffff7fff00010000
+arg 3: argNum 400000000
+arg 4: argNum 8102000000
+arg 5: argAlloc 800c0a060 - allocated 0 bytes
+arg 6: argNum 0
+read 202 bytes, parse result 0 nrecs 2
+syscall 4 (3, 400000, 20, 800c0a058, 140000000076717f, 1)
+syscall 21 (800c0b040, 232100737404, ffff7fff00010000, 400000000, 8102000000, 800c0a060)
+kldload: /tmp/file0: Unreadable program headers
+
+
+Fatal trap 9: general protection fault while in kernel mode
+cpuid = 0; apic id = 00
+instruction pointer = 0x20:0xffffffff8097799e
+stack pointer           = 0x28:0xfffffe0011ddd520
+frame pointer           = 0x28:0xfffffe0011ddd6e0
+code segment        = base 0x0, limit 0xfffff, type 0x1b
+            = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags    = interrupt enabled, IOPL = 0
+current process     = 26 (driver)
+trap number     = 9
+panic: general protection fault
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff8098e390 at kdb_backtrace+0x60
+#1 0xffffffff80951066 at vpanic+0x126
+#2 0xffffffff80950f33 at panic+0x43
+#3 0xffffffff80d55f7b at trap_fatal+0x36b
+#4 0xffffffff80d55bfd at trap+0x77d
+#5 0xffffffff80d3b8d2 at calltrap+0x8
+#6 0xffffffff8092ab0d at linker_load_module+0x9ad
+#7 0xffffffff8092c1b3 at kern_kldload+0xc3
+#8 0xffffffff809eb8e1 at vfs_byname_kld+0x31
+#9 0xffffffff809f03b0 at sys_mount+0xa0
+#10 0xffffffff80d5694f at amd64_syscall+0x40f
+#11 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+

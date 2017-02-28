@@ -1,0 +1,193 @@
+clock_ts_to_ct() integer truncation leads to out-of-range values in result
+  These are later trusted to be in-range in atrtc_settime() which
+  will use the ct.day in bin2bcd() macro, which ends up doing an out-of-bounds
+  table lookup (OOB read).  resulting in a page fault and crash.
+
+recommend:
+  years and days should be "long".  negative values of ts->tv_sec should
+    result in an error or should be handled appropriately to prevent
+    signed overflows and signed modulos.
+
+
+clock_settime(CLOCK_REALTIME, {tv_sec = 0x557206f85556568, tv_nsec = 0xa05});
+
+- requires PRIV_CLOCK_SETTIME
+
+call 233
+arg 0: argNum 100000000000000
+arg 1: argBuf 800668044 from 11 bytes
+arg 2: argBuflen b
+arg 3: argNum 0
+arg 4: argNum 0
+arg 5: argNum ffffffeb001000
+arg 6: argNum e500000000001703
+read 63 bytes, parse result 0 nrecs 1
+syscall 233 (100000000000000, 800668044, b, 0, 0, ffffffeb001000)
+
+
+Fatal trap 12: page fault while in kernel mode
+cpuid = 0; apic id = 00
+fault virtual address   = 0xffffffff7eab4242
+fault code      = supervisor read data, page not present
+instruction pointer = 0x20:0xffffffff80e6e6c8
+stack pointer           = 0x28:0xfffffe0011ddd9d0
+frame pointer           = 0x28:0xfffffe0011ddda10
+code segment        = base 0x0, limit 0xfffff, type 0x1b
+            = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags    = interrupt enabled, IOPL = 0
+current process     = 26 (driver)
+trap number     = 12
+panic: page fault
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff8098e390 at kdb_backtrace+0x60
+#1 0xffffffff80951066 at vpanic+0x126
+#2 0xffffffff80950f33 at panic+0x43
+#3 0xffffffff80d55f7b at trap_fatal+0x36b
+#4 0xffffffff80d5627d at trap_pfault+0x2ed
+#5 0xffffffff80d558fa at trap+0x47a
+#6 0xffffffff80d3b8d2 at calltrap+0x8
+#7 0xffffffff809993f1 at resettodr+0xc1
+#8 0xffffffff80963ea0 at settime+0x180
+#9 0xffffffff80963c96 at sys_clock_settime+0x86
+#10 0xffffffff80d5694f at amd64_syscall+0x40f
+#11 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+
+
+crash:
+166     resettodr();
+175     if ((error = CLOCK_SETTIME(clock_dev, &ts)) != 0)
+atrtc_settime
+312     writertc(RTC_DAY, bin2bcd(ct.day));     /* Write back Day */
+
+
+0xffffffff80e6e6c8 is in atrtc_settime (/usr/src/sys/x86/isa/atrtc.c:312).
+
+p/x ct
+$13 = {year = 0x7b2, mon = 0x1, day = 0xfdacf542, hour = 0x3, min = 0x29, 
+  sec = 0x1c, dow = 0xfffffffd, nsec = 0x1dcf334d}
+
+=> 0xffffffff80e6e6c4 <atrtc_settime+116>:  movslq -0x20(%rbp),%rax
+   0xffffffff80e6e6c8 <atrtc_settime+120>:  movzbl -0x7f01b300(%rax),%esi  ******CRASH
+   0xffffffff80e6e6cf <atrtc_settime+127>:  mov    $0x7,%edi
+
+(gdb) p/x $rax
+$15 = 0x246
+
+
+#define bin2bcd(bin)    (bin2bcd_data[bin]) 
+    writertc(RTC_DAY, bin2bcd(ct.day));     /* Write back Day */
+ct = {year = 1970, mon = 1, day = -38996670, hour = 3, min = 41, sec = 28, 
+  dow = -3, nsec = 510551109}
+
+
+clock_settime
+(gdb) p/x *uap
+$28 = {clock_id_l_ = 0xfffffe000021bb80, clock_id = 0x0, clock_id_r_ = {0x0, 
+    0x0, 0x0, 0x1}, tp_l_ = 0xfffffe000021bb88, tp = 0x800668044, 
+  tp_r_ = 0xfffffe000021bb90}
+
+clock_id = 0
+686555856f205705.050a00
+ats = {tv_sec = 0x557206f85556568, tv_nsec = 0xa05}
+atv = {tv_sec = 0x557206f85556568, tv_usec = 0x2}
+
+before calling tc_setclock() and resettodr() in settime()
+ts = {tv_sec = 0x557206f85556568, tv_nsec = 0x7d0}
+before calling CLOCK_SETTIME in resettodr() (and at call to atrtc_settime())
+ts = {tv_sec = 0x557206f85556568, tv_nsec = 0x1e2a92e7}
+
+clock_ts_to_ct(ts, &ct)
+189     ct->dow = day_of_week(days);
+(gdb) p/x ct->dow
+$41 = 0xfffffffd
+ 
+
+(gdb) p/x secs / (24*60*60)
+$45 = 0x40c.fdac.f541                <- too big for int
+    days = secs / SECDAY;            <- days is int, will be treated as negative!
+#define day_of_week(days)   (((days) + 4) % 7)
+    ct->dow = day_of_week(days);     <- mod returns negative result here! out of range!
+
+later ct.day is left with an out-of-range value!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+begin 600 settime.bin
+M`.D``0`````````"`P``````````````````````````____ZP`0``#E````
+2```7`Z7)DFAE585O(%<%!0H`
+`
+end
+
+----
+related:
+
+  settimeofday.bin
+
+
+test running in pid 23457
+call 2
+arg 0: argNum f2e700000000
+arg 1: argNum 5656e700000000
+arg 2: argNum 0
+arg 3: argNum 1000e70000000000
+arg 4: argNum 1000000f400a50d
+arg 5: argNum f56400
+arg 6: argNum f0ff1f1200
+call 122
+arg 0: argNum 400021
+arg 1: argAlloc 800c0a400 - allocated 3e1 bytes
+arg 2: argBuflen 3e1
+arg 3: argNum 200000
+arg 4: argNum 4
+arg 5: argNum e1000000000000
+arg 6: argNum 1000e70000000000
+read 269 bytes, parse result 0 nrecs 2
+syscall 2 (f2e700000000, 5656e700000000, 0, 1000e70000000000, 1000000f400a50d, f56400)
+syscall 122 (400021, 800c0a400, 3e1, 200000, 4, e1000000000000)
+
+
+Fatal trap 12: page fault while in kernel mode
+cpuid = 0; apic id = 00
+fault virtual address   = 0xffffffff5e7b13bd
+fault code      = supervisor read data, page not present
+instruction pointer = 0x20:0xffffffff80e6e6c8
+stack pointer           = 0x28:0xfffffe0011ddd9c0
+frame pointer           = 0x28:0xfffffe0011ddda00
+code segment        = base 0x0, limit 0xfffff, type 0x1b
+            = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags    = interrupt enabled, IOPL = 0
+current process     = 26 (driver)
+trap number     = 12
+panic: page fault
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff8098e390 at kdb_backtrace+0x60
+#1 0xffffffff80951066 at vpanic+0x126
+#2 0xffffffff80950f33 at panic+0x43
+#3 0xffffffff80d55f7b at trap_fatal+0x36b
+#4 0xffffffff80d5627d at trap_pfault+0x2ed
+#5 0xffffffff80d558fa at trap+0x47a
+#6 0xffffffff80d3b8d2 at calltrap+0x8
+#7 0xffffffff809993f1 at resettodr+0xc1
+#8 0xffffffff80963ea0 at settime+0x180
+#9 0xffffffff80964379 at sys_settimeofday+0x89
+#10 0xffffffff80d5694f at amd64_syscall+0x40f
+#11 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+test ended with status 2000
+3144 edges
+
+
+

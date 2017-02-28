@@ -1,0 +1,248 @@
+note:
+  side effect - out of ktrace request objects -- and ktrace stops working?
+
+Input from outputs/s10/crashes/id:000062,sig:00,src:015134,op:havoc,rep:8 at time 1479405892.805023
+test running in pid 17257
+call 80 - setgroups
+arg 0: argNum 10400000065
+arg 1: argBuf 800668047 from 121 bytes
+arg 2: argBuflen 79
+arg 3: argNum 0
+arg 4: argNum e0000000
+arg 5: argNum f70100000000
+arg 6: argNum 0
+call 45 - ktrace
+arg 0: argFilename 800c0a040 - 0 bytes from /tmp/file0
+arg 1: argNum 232100737404
+arg 2: argNum ffffffffff01e1f6
+arg 3: argNum 8000000400000000
+arg 4: argNum fe8002000000
+arg 5: argAlloc 800c0b058 - allocated 0 bytes
+arg 6: argNum 800000000200
+call 363 - kevent
+arg 0: argNum a5c9100000000000
+arg 1: argNum 301000004010300
+arg 2: argNum ffffffff
+arg 3: argAlloc 800c0c100 - allocated 100 bytes
+arg 4: argVec64 800c0b060 - size 0
+arg 5: argBuflen 0
+arg 6: argNum 80000e80000
+read 732 bytes, parse result 0 nrecs 3
+syscall 80 (10400000065, 800668047, 79, 0, e0000000, f70100000000)
+syscall 45 (800c0a040, 232100737404, ffffffffff01e1f6, 8000000400000000, fe8002000000, 800c0b058)
+syscall 363 (a5c9100000000000, 301000004010300, ffffffff, 800c0c100, 800c0b060, 0)
+Fatal trap 9: general protection fault while in kernel mode
+cpuid = 0; apic id = 00
+instruction pointer = 0x20:0xffffffff809a57ff
+stack pointer           = 0x28:0xfffffe0011ddd8e0
+frame pointer           = 0x28:0xfffffe0011ddd920
+code segment        = base 0x0, limit 0xfffff, type 0x1b
+            = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags    = interrupt enabled, IOPL = 0
+current process     = 26 (driver)
+trap number     = 9
+panic: general protection fault
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff8098e390 at kdb_backtrace+0x60
+#1 0xffffffff80951066 at vpanic+0x126
+#2 0xffffffff80950f33 at panic+0x43
+#3 0xffffffff80d55f7b at trap_fatal+0x36b
+#4 0xffffffff80d55bfd at trap+0x77d
+#5 0xffffffff80d3b8d2 at calltrap+0x8
+#6 0xffffffff80bd33f3 at kmem_malloc+0x33
+#7 0xffffffff80bcc126 at uma_large_malloc+0x46
+#8 0xffffffff80932ed4 at malloc+0x44
+#9 0xffffffff80928293 at ktrgenio+0x63
+#10 0xffffffff8090e742 at sys_kevent+0x152
+#11 0xffffffff80d5694f at amd64_syscall+0x40f
+#12 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+
+
+(gdb) print *uap
+$1 = {fd_l_ = 0xfffffe0000216b80 "", fd = 0, fd_r_ = "\000\020ɥ", 
+  changelist_l_ = 0xfffffe0000216b88 "", changelist = 0x301000004010300, 
+  changelist_r_ = 0xfffffe0000216b90 "\377\377\377\377", 
+  nchanges_l_ = 0xfffffe0000216b90 "\377\377\377\377", nchanges = -1, 
+  nchanges_r_ = "\000\000\000", eventlist_l_ = 0xfffffe0000216b98 "", 
+  eventlist = 0x800c0c100, eventlist_r_ = 0xfffffe0000216ba0 "`\260\300", 
+  nevents_l_ = 0xfffffe0000216ba0 "`\260\300", nevents = 12628064, 
+  nevents_r_ = "\b\000\000", timeout_l_ = 0xfffffe0000216ba8 "", 
+  timeout = 0x0, timeout_r_ = 0xfffffe0000216bb0 "\001"}
+
+807         ktriov.iov_len = uap->nchanges * sizeof(struct kevent);
+
+ktrgenio (fd=0, rw=UIO_WRITE, uio=0xfffff8000239ab00, error=0)
+    at /usr/src/sys/kern/kern_ktrace.c:681
+(gdb) print *uio
+$8 = {uio_iov = 0xfffff8000239ab30, uio_iovcnt = 1, uio_offset = 0, 
+  uio_resid = -32, uio_segflg = UIO_USERSPACE, uio_rw = UIO_READ, 
+  uio_td = 0xfffff800023904b0}
+
+687     datalen = MIN(uio->uio_resid, ktr_geniosize);
+(gdb) 
+688     buf = malloc(datalen, M_KTRACE, M_WAITOK);
+(gdb) print datalen
+$9 = -32
+(gdb) step
+malloc (size=18446744073709551584, mtp=0xffffffff814a5870 <M_KTRACE>, flags=2)
+    at /usr/src/sys/kern/kern_malloc.c:477
+477     if (flags & M_WAITOK)
+
+
+511         size = roundup(size, PAGE_SIZE);
+(gdb) p size
+$10 = 18446744073709551584
+
+size rounds up to zero
+
+
+uma_large_malloc (size=0, wait=2) at /usr/src/sys/vm/uma_core.c:3278
+3281        mem = page_alloc(NULL, size, &flags, wait);
+
+vmem_alloc (vm=0xffffffff81620180 <kmem_arena_storage>, size=0, flags=8194, 
+    addrp=0xfffffe0000216930) at /usr/src/sys/kern/subr_vmem.c:1083
+1090            qc = &vm->vm_qcache[(size - 1) >> vm->vm_quantum_shift];
+1091            *addrp = (vmem_addr_t)uma_zalloc(qc->qc_cache, flags);
+
+     faulting on qc->qc_cache when qc is bad
+
+size == 0
+vm->vm_quantum_shift == 12
+size-1 >> vm->vm_quantum_shift == 0xf.ffff.ffff.ffff  in $rsi
+
+&vm->vm_qcache[0] == 0xffffffff81620608
+                  == 0xffffffff81620180 + 0x488
+
+
+=> 0xffffffff809a57fb <vmem_alloc+75>:  lea    (%rsi,%rsi,4),%rax
+   0xffffffff809a57ff <vmem_alloc+79>:  mov    0x488(%rdi,%rax,8),%rdi
+$rdi = 0xffffffff81620180   (kmem_arena_storage)
+$rax = 0x4f.ffff.ffff.fffb
+
+
+
+-------------
+
+vmem_alloc fails when size is zero
+
+    if (size <= vm->vm_qcache_max) {
+        qc = &vm->vm_qcache[(size - 1) >> vm->vm_quantum_shift];
+        *addrp = (vmem_addr_t)uma_zalloc(qc->qc_cache, flags);
+        if (*addrp == 0)
+            return (ENOMEM);
+        return (0);
+    }
+
+because size-1 underflows and generates an out-of-bound index
+ 
+
+
+     int
+     kevent(int kq, const struct kevent *changelist, int nchanges,
+         struct kevent *eventlist, int nevents,
+         const struct timespec *timeout);
+     fd=0
+     changelist = 0x301000004010300
+     nchanges = -1
+     eventlist = 0x800c0c100            malloc(100)
+     nevents = 0xc0b060
+     timeout = NULL
+
+arg 0: argNum a5c9100000000000
+arg 1: argNum 301000004010300
+arg 2: argNum ffffffff
+arg 3: argAlloc 800c0c100 - allocated 100 bytes
+arg 4: argVec64 800c0b060 - size 0
+arg 5: argBuflen 0
+arg 6: argNum 80000e80000
+
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/uio.h>
+#include <sys/ktrace.h>
+
+int main(int argc, char **argv)
+{
+    int x;
+
+    x = ktrace("/tmp/out", KTROP_SET, KTRFAC_GENIO, 0);
+    printf("ktrace\n", x);
+    x = kevent(0xa5c9100000000000, 0x301000004010300, -1, malloc(100), mallo
+c(100), 0);
+    printf("result %d\n", x);
+    return 0;
+}
+
+
+
+---
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/param.h>
+#include <sys/time.h>
+#include <sys/uio.h>
+#include <sys/ktrace.h>
+
+void xperror(char *msg) 
+{
+    perror(msg);
+    exit(1);
+}
+
+int main(int argc, char **argv)
+{
+    char *fn = "/tmp/trace";
+    struct kevent changes[1] = { {0} };
+    struct kevent events[1] = { {0} };
+    
+    if(open(fn, O_RDWR | O_CREAT, 0666) == -1)
+        xperror(fn);
+    if(ktrace(fn, KTRFLAG_DESCEND | KTROP_SET, KTRFAC_GENIO, 0) == -1)
+        xperror("ktrace");
+    if(kevent(0, changes, -1, events, 1, 0) == -1) 
+        xperror("kevent");
+    printf("done\n");
+    return 0;
+}
+
+
+------
+
+ktrgenio()
+uio = {uio_iov = 0xfffff8000239abb0, uio_iovcnt = 1, uio_offset = 0, 
+  uio_resid = -32, uio_segflg = UIO_USERSPACE, uio_rw = UIO_WRITE, 
+  uio_td = 0xfffff800023904b0}
+
+    datalen = MIN(uio->uio_resid, ktr_geniosize);  // as an int, trunc
+    buf = malloc(datalen, M_KTRACE, M_WAITOK);
+
+datalen == -16.
+
+malloc(0xffffffffffffffe0, ...
+
+         size = roundup(size, PAGE_SIZE);
+         zone = NULL;
+         va = uma_large_malloc(size, flags);
+
+uma_large_malloc(0, ...
+
+malloc -> uma_large_malloc -> page_alloc -> kmem_malloc -> vmem_malloc
+
+vmem_alloc fails when size is zero
+
+    if (size <= vm->vm_qcache_max) {
+        qc = &vm->vm_qcache[(size - 1) >> vm->vm_quantum_shift];
+        *addrp = (vmem_addr_t)uma_zalloc(qc->qc_cache, flags);
+        if (*addrp == 0)
+            return (ENOMEM);
+        return (0);
+    }

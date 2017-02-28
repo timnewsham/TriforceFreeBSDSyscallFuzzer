@@ -1,0 +1,61 @@
+see pread.txt for analysis
+
+
+Input from outputs/s10/crashes/id:000196,sig:00,src:020106,op:havoc,rep:2 at time 1481318626.107661
+test running in pid 31402
+call 482
+arg 0: argFilename 800c0a040 - 4 bytes from /tmp/file0
+arg 1: argNum 202
+arg 2: argNum 1000c0000
+arg 3: argNum 208000ff00000800
+arg 4: argNum 0
+arg 5: argNum 7f
+arg 6: argNum d000000b6
+call 174
+arg 0: argNum 3
+arg 1: argAlloc 800c0b058 - allocated 1 bytes
+arg 2: argBuflen 1
+arg 3: argNum 1b0000130000
+arg 4: argNum e0ff000000030000
+arg 5: argNum ee090005f4800000
+arg 6: argNum 400ff80006f6e
+call 3
+arg 0: argNum 100000000000003
+arg 1: argAlloc 800c08060 - allocated 20 bytes
+arg 2: argNum 2f000000
+arg 3: argNum e50000000000
+arg 4: argNum 640000002403
+arg 5: argNum 5d1800cc00000000
+arg 6: argNum fa0000fa00000000
+read 208 bytes, parse result 0 nrecs 3
+syscall 482 (800c0a040, 202, 1000c0000, 208000ff00000800, 0, 7f)
+syscall 174 (3, 800c0b058, 1, 1b0000130000, e0ff000000030000, ee090005f4800000)
+syscall 3 (100000000000003, 800c08060, 2f000000, e50000000000, 640000002403, 5d1800cc00000000)
+
+
+Fatal trap 12: page fault while in kernel mode
+cpuid = 0; apic id = 00
+fault virtual address   = 0x1d4
+fault code      = supervisor read data, page not present
+instruction pointer = 0x20:0xffffffff809a839d
+stack pointer           = 0x28:0xfffffe0011ddda30
+frame pointer           = 0x28:0xfffffe0011ddda80
+code segment        = base 0x0, limit 0xfffff, type 0x1b
+            = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags    = interrupt enabled, IOPL = 0
+current process     = 26 (driver)
+trap number     = 12
+panic: page fault
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff8098e390 at kdb_backtrace+0x60
+#1 0xffffffff80951066 at vpanic+0x126
+#2 0xffffffff80950f33 at panic+0x43
+#3 0xffffffff80d55f7b at trap_fatal+0x36b
+#4 0xffffffff80d5627d at trap_pfault+0x2ed
+#5 0xffffffff80d558fa at trap+0x47a
+#6 0xffffffff80d3b8d2 at calltrap+0x8
+#7 0xffffffff809a846a at freebsd6_pwrite+0x6a
+#8 0xffffffff80d5694f at amd64_syscall+0x40f
+#9 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+

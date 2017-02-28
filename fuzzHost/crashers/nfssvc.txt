@@ -1,0 +1,93 @@
+
+begin 600 nfssvc.bin
+M`)L`````````^P$"`P``````````````````````````&0``````````````
+3`````*7)DFAE;&QO(%=O<EYD(0``
+`
+end
+
+# driver -tv <nfssvc.bin 
+call 155
+arg 0: argNum fb01
+arg 1: argBuf 800668044 from 12 bytes
+arg 2: argBuflen c
+arg 3: argNum 0
+arg 4: argNum 0
+arg 5: argNum 19000000000000
+arg 6: argNum 0
+read 64 bytes, parse result 0 nrecs 1
+syscall 155 (fb01, 800668044, c, 0, 0, 19000000000000)
+
+
+Fatal trap 12: page fault while in kernel mode
+cpuid = 0; apic id = 00
+fault virtual address   = 0x18
+fault code      = supervisor read data, page not present
+instruction pointer = 0x20:0xffffffff8084d2a2
+stack pointer           = 0x28:0xfffffe0011ddd9c0
+frame pointer           = 0x28:0xfffffe0011ddda20
+code segment        = base 0x0, limit 0xfffff, type 0x1b
+            = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags    = interrupt enabled, IOPL = 0
+current process     = 26 (driver)
+trap number     = 12
+panic: page fault
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff8098e390 at kdb_backtrace+0x60
+#1 0xffffffff80951066 at vpanic+0x126
+#2 0xffffffff80950f33 at panic+0x43
+#3 0xffffffff80d55f7b at trap_fatal+0x36b
+#4 0xffffffff80d5627d at trap_pfault+0x2ed
+#5 0xffffffff80d558fa at trap+0x47a
+#6 0xffffffff80d3b8d2 at calltrap+0x8
+#7 0xffffffff8084f7d2 at nfssvc_nfscommon+0x2a2
+#8 0xffffffff80b41c3c at sys_nfssvc+0x9c
+#9 0xffffffff80d5694f at amd64_syscall+0x40f
+#10 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+
+----
+nfssvc_nfscommon
+442     error = nfssvc_call(td, uap, td->td_ucred);  crash
+473         error = nfssvc_idname(&nid);             crash
+3330            mtx_lock(&hp_name->mtx);
+   /usr/src/sys/fs/nfs/nfs_commonsubs.c
+
+$6 = {nid_flag = 0x6c6c6568, nid_uid = 0x6f57206f, nid_gid = 0x21645e72, 
+  nid_usermax = 0x0, nid_usertimeout = 0x0, nid_name = 0x0, 
+  nid_namelen = 0x0, nid_grps = 0x0, nid_ngroup = 0x0}
+
+
+    } else if (nidp->nid_flag & (NFSID_DELUSERNAME | NFSID_ADDUSERNAME)) {
+        hp_name = NFSUSERNAMEHASH(newusrp->lug_name,
+            newusrp->lug_namelen);
+        mtx_lock(&hp_name->mtx);
+
+
+#define NFSID_ADDUSERNAME   0x0008   <- set
+#define NFSID_DELUSERNAME   0x0010   <- clear
+
+
+
+----------------
+$ filt -m 'call 155' <typescript|grep 'instruction pointer'|sort -u
+instruction pointer = 0x20:0xffffffff8084d2a2
+instruction pointer = 0x20:0xffffffff8084d325
+instruction pointer = 0x20:0xffffffff8084d457
+instruction pointer = 0x20:0xffffffff8084d9a9
+  - gdb says these are all atomic_cmpset_long()
+
+instruction pointer = 0x20:0xffffffff80936ae0
+  - __mtx_lock_sleep()
+instruction pointer = 0x20:0xffffffff809a57ff
+  - vmem_alloc()
+instruction pointer = 0x20:0xffffffff809e9591
+  - vfs_setpublicfs()
+
+
+0xffffffff8084d2a2 outputs/s10/crashes/id:000000,sig:00,src:001244+000245,op:splice,rep:2 
+0xffffffff8084d325 outputs/s10/crashes/id:000005,sig:00,src:002017,op:havoc,rep:2
+0xffffffff8084d457 outputs/s10/crashes/id:000015,sig:00,src:002017+002583,op:splice,rep:4
+0xffffffff8084d9a9 outputs/s10/crashes/id:000019,sig:00,src:002740,op:havoc,rep:2
+0xffffffff80936ae0 outputs/s10/crashes/id:000021,sig:00,src:002741+003027,op:splice,rep:16
+0xffffffff809a57ff outputs/s10/crashes/id:000009,sig:00,src:002017,op:havoc,rep:4
+0xffffffff809e9591 outputs/s10/crashes/id:000036,sig:00,src:003503+001937,op:splice,rep:8
