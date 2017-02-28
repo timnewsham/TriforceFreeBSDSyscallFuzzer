@@ -13,14 +13,14 @@ known = [
     'ended with status 0', # ignore all unreproducibles
     'clock_settime.*panic: page fault', # clock settime integer problem, settime.txt
     'settimeofday.*panic: page fault', # settimeofday integer problem, settime.txt
+    'pread.*page fault', # pread.txt
+    'pwrite.*page fault', # pwrite.txt
+    'ktrace.*general protection fault', # something about malloc.. ktrace.txt
 
 
     #XXX not yet analyzed
     'mount.*page fault', # mount kldload unreadable program headers, mount.txt
     'mount.*general protection fault', # mount kldload unreadable program headers, mount.txt
-    'ktrace.*general protection fault', # something about malloc.. ktrace.txt
-    'pread.*page fault', # pread.txt
-    'pwrite.*page fault', # pwrite.txt
     'nfssvc.*panic', # various nfssvc panics, nfssvc.txt
 ]
 
