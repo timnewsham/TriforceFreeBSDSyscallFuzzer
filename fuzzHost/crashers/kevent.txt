@@ -1,3 +1,9 @@
+summary:
+  any user can crash the kernel with a general protection fault by
+doing some event while ktracing
+
+Reported: 20170228 https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=217435
+
 note:
   side effect - out of ktrace request objects -- and ktrace stops working?
 
@@ -246,3 +252,46 @@ vmem_alloc fails when size is zero
             return (ENOMEM);
         return (0);
     }
+
+
+-------------------
+sys_kevent tries to trace with this code before doing the syscall:
+
+    if (KTRPOINT(td, KTR_GENIO)) {
+        ktriov.iov_base = uap->changelist;
+        ktriov.iov_len = uap->nchanges * sizeof(struct kevent);
+        ktruio = (struct uio){ .uio_iov = &ktriov, .uio_iovcnt = 1,
+            .uio_segflg = UIO_USERSPACE, .uio_rw = UIO_READ,
+            .uio_td = td };
+        ktruioin = cloneuio(&ktruio);
+        ktriov.iov_base = uap->eventlist;
+        ktriov.iov_len = uap->nevents * sizeof(struct kevent);
+        ktruioout = cloneuio(&ktruio);
+    }
+
+and this code after doing the syscall:
+
+    if (ktruioin != NULL) {
+        ktruioin->uio_resid = uap->nchanges * sizeof(struct kevent);
+        ktrgenio(uap->fd, UIO_WRITE, ktruioin, 0);
+        ktruioout->uio_resid = td->td_retval[0] * sizeof(struct kevent);
+        ktrgenio(uap->fd, UIO_READ, ktruioout, error);
+    }
+
+here uap->nchanges nad upa->nevents are signed integers.
+iov_len is size_t (unsigned).
+uio_resid is ssize_t (signed).  in ktrgenio an int datalen is computed:
+
+    datalen = MIN(uio->uio_resid, ktr_geniosize);
+    buf = malloc(datalen, M_KTRACE, M_WAITOK);
+
+which truncates uio_resid to 32-bits and allocates from it.
+malloc will treat datalen as "unsigned long", sign extending
+it to a very large number.  This causes errors in malloc
+resulting in a crash.
+
+Recommendation:
+Rejected negative values of "nchanges" and "nevents" in sys_kevent.
+Make "datalen" an unsigned long in ktrgenio.
+Consider rejecting overly large allocation requests in malloc.
+

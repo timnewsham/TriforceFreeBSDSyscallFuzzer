@@ -1,4 +1,14 @@
+summary: mount with fstype that is a corrupted ELF can cause out-of-bounds
+  reads through the e_phoff.  Only 1 page is allocated, and e_phoff is
+  not validated to be in range before accessed.  
 
+not a security issue because requires PRIV_KLD_LOAD
+
+this is going to be triggerable through other paths besides mount
+
+
+Reported 20170228 https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=217432
+----
 
 Input from outputs/s10/crashes/id:000133,sig:00,src:017628,op:havoc,rep:4 at time 1481318610.943753
 test running in pid 24825
@@ -107,4 +117,70 @@ KDB: stack backtrace:
 #9 0xffffffff809f03b0 at sys_mount+0xa0
 #10 0xffffffff80d5694f at amd64_syscall+0x40f
 #11 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+
+
+
+----
+linker_load_file (result=<optimized out>, filename=<optimized out>)
+    at /usr/src/sys/kern/kern_linker.c:413
+
+413     TAILQ_FOREACH(lc, &classes, link) {
+416         error = LINKER_LOAD_FILE(lc, filename, &lf);
+
+linker_load_file
+linker_load_module("/tmp/file0", null, null, null, &lf)
+kern_kldload(..., "/tmp/file0", ...)
+vfs_byname_kld
+sys_mount
+
+break /usr/src/sys/kern/kern_linker.c:397
+
+kobj_lookup_method
+link_elf_load_file
+Breakpoint 12, link_elf_load_file (cls=0xffffffff814fdbf0 <link_elf_class>, 
+    filename=0xfffff80002449070 "/tmp/file0", result=0xfffffe000021b9e0)
+    at /usr/src/sys/kern/link_elf_obj.c:447
+Breakpoint 12, link_elf_load_file (cls=0xffffffff814addd0 <link_elf_class>, 
+    filename=0xfffff80002449070 "/tmp/file0", result=0xfffffe000021b9e0)
+    at /usr/src/sys/kern/link_elf.c:718
+
+
+    if (!((hdr->e_phentsize == sizeof(Elf_Phdr)) &&
+          (hdr->e_phoff + hdr->e_phnum*sizeof(Elf_Phdr) <= PAGE_SIZE) &&
+          (hdr->e_phoff + hdr->e_phnum*sizeof(Elf_Phdr) <= nbytes)))
+        link_elf_error(filename, "Unreadable program headers");
+
+     ^^^^^ this is a proper check, but it does not terminate processing.
+           so the program continues with invalid offsets beyond the error
+
+[...]
+    phdr = (Elf_Phdr *) (firstpage + hdr->e_phoff);
+    phlimit = phdr + hdr->e_phnum;
+    nsegs = 0;
+    phdyn = NULL;
+    phphdr = NULL;
+    while (phdr < phlimit) {
+        switch (phdr->p_type) {  <---- crash
+
+822     phdr = (Elf_Phdr *) (firstpage + hdr->e_phoff);
+(gdb) 
+823     phlimit = phdr + hdr->e_phnum;
+(gdb) print phdr
+$35 = (Elf_Phdr *) 0xfffffa8102432000
+
+$38 = 0xfffffa8102432000
+(gdb) x/10i $rip
+   0xffffffff80977997 <link_elf_load_file+887>: mov    %rdx,-0x160(%rbp)
+=> 0xffffffff8097799e <link_elf_load_file+894>: mov    (%rax),%edx
+(gdb) p/x $rax
+$38 = 0xfffffa8102432000
+
+
+$41 = {e_ident = "\177ELF\002\001\001\t\000\000\000\000\000\000\000", 
+  e_type = 2, e_machine = 62, e_version = 1, e_entry = 4194720, 
+  e_phoff = 2753074036736, e_shoff = 256, e_flags = 0, e_ehsize = 0, 
+  e_phentsize = 0, e_phnum = 51621, e_shentsize = 14906, e_shnum = 14906, 
+  e_shstrndx = 14906}
+
+e_phoff = 0x28100000000
 

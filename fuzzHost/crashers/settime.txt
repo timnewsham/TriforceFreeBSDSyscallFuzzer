@@ -1,3 +1,5 @@
+summary
+
 clock_ts_to_ct() integer truncation leads to out-of-range values in result
   These are later trusted to be in-range in atrtc_settime() which
   will use the ct.day in bin2bcd() macro, which ends up doing an out-of-bounds
@@ -13,6 +15,9 @@ clock_settime(CLOCK_REALTIME, {tv_sec = 0x557206f85556568, tv_nsec = 0xa05});
 
 - requires PRIV_CLOCK_SETTIME
 
+related crash happens from settimeofday() syscall.
+
+----
 call 233
 arg 0: argNum 100000000000000
 arg 1: argBuf 800668044 from 11 bytes

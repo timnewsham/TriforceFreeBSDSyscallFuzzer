@@ -68,3 +68,39 @@ shm_open -> SYS_freebsd6_pread or pread
 
 similar:
 shm_open -> SYS_freebsd6_pwrite or pwrite
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/syscall.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+void xperror(char *msg) {
+    perror(msg);
+    exit(1);
+}
+
+int main(int argc, char **argv)
+{
+    char buf[64];
+    int fd, x, w;
+
+    w = (argc == 2 && argv[1][0] == 'w');
+    printf("we will %s\n", w ? "write" : "read");
+
+    fd = shm_open(SHM_ANON, O_RDWR, 0);
+    if(fd == -1) xperror("shm_open");
+    printf("fd %d\n", fd); fflush(stdout);
+
+    if(w)
+        x = syscall(174, fd, "test", 4, -1); // freebsd6_pwrite
+    else
+        x = syscall(173, fd, buf, sizeof buf, -1); // freebsd6_pread
+    printf("io %d\n", x);
+    return 0;
+}
+
