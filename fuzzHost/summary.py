@@ -22,14 +22,13 @@ known = [
     'calltrap\+0x[0-9a-f]+ nfssvc_nfscommon', # XXX nfssvc2.txt
 
     # these are all related to nfssvc trashing the fd
-    'nfssvc.* sys_connect', # XXX connect.bin, connect.txt
+    'nfssvc.* sys_connect', # connect.bin, connect.txt
     'nfssvc.*kern_getsockopt', # XXX
     'nfssvc.*kern_bindat', # XXX
     'nfssvc.*kern_recvit', # XXX
     'nfssvc.*kern_sendit', # XXX
     'nfssvc.*sys_listen', # XXX
     'nfssvc.*kern_setsockopt', # XXX
-
     'nfssvc call.*nfssvc call', # XXX I think this one too
 
     # isolated but not analyzed
