@@ -2,6 +2,8 @@
  * concrash.c
  *     Cause a panic using nfssvc system call after it receives a socket
 
+Reported: 20170301 https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=217463
+
 Description:
 When you pass a socket to the NFS subsystem in the kernel, it
 uses nfscbd_addsock() to claim the socket.  This results in the

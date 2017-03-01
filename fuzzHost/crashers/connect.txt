@@ -2,7 +2,7 @@ summary: if you pass in a sock into sys_nfssvc and later use it for
   normal socket ops after the kernel has claimed it, it will panic the
   kernel on a null pointer deref
 
-
+Reported: 20170301 https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=217463
 
 requires sys_nfssvc and sys_connect to trigger
 
