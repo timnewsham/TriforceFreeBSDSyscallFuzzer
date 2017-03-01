@@ -1,0 +1,46 @@
+
+Fatal trap 12: page fault while in kernel mode
+cpuid = 0; apic id = 00
+fault virtual address   = 0x2b
+fault code      = supervisor read data, page not present
+instruction pointer = 0x20:0xffffffff809e9591
+stack pointer           = 0x28:0xfffffe000021b270
+frame pointer           = 0x28:0xfffffe000021b2c0
+code segment        = base 0x0, limit 0xfffff, type 0x1b
+            = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags    = interrupt enabled, IOPL = 0
+current process     = 40 (driver)
+trap number     = 12
+panic: page fault
+
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff8098e390 at kdb_backtrace+0x60
+#1 0xffffffff80951066 at vpanic+0x126
+#2 0xffffffff80950f33 at panic+0x43
+#3 0xffffffff80d55f7b at trap_fatal+0x36b
+#4 0xffffffff80d5627d at trap_pfault+0x2ed
+#5 0xffffffff80d558fa at trap+0x47a
+#6 0xffffffff80d3b8d2 at calltrap+0x8
+#7 0xffffffff809e8fea at vfs_export+0x2fa
+#8 0xffffffff808a1cf2 at nfsrv_v4rootexport+0x32
+#9 0xffffffff808a28ca at nfssvc_nfsd+0x18a
+#10 0xffffffff80b41c3c at sys_nfssvc+0x9c
+#11 0xffffffff80d5694f at amd64_syscall+0x40f
+#12 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+
+
+nfssvc_srvcall
+
+vfs_export (mp=0xffffffff816913f0 <nfsv4root_mnt>, argp=0xfffffe000021b9f0)
+    at /usr/src/sys/kern/vfs_export.c:278
+310             if ((error = vfs_setpublicfs(mp, nep, argp)) != 0)
+
+
+vfs_setpublicfs (mp=<optimized out>, nep=<optimized out>, 
+    argp=<optimized out>, mp=<optimized out>, nep=<optimized out>, 
+    argp=<optimized out>) at /usr/src/sys/kern/vfs_export.c:356
+
+378     if ((error = VFS_ROOT(mp, LK_EXCLUSIVE, &rvp)))
+
+

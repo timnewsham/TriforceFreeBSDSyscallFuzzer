@@ -18,9 +18,20 @@ known = [
     'resettodr', # settime.txt
     'malloc\+0x[0-9a-f]+ ktrgenio', # kevent.txt
     'calltrap\+0x[0-9a-f]+ linker_load_module', # mount/kldload, mount.txt
+    'malloc\+0x[0-9a-f]+ nfssvc_idname', # XXX nfssvc1.txt
+    'calltrap\+0x[0-9a-f]+ nfssvc_nfscommon', # XXX nfssvc2.txt
 
-    #XXX not yet analyzed
-    'nfssvc.*panic', # various nfssvc panics, nfssvc.txt
+    # isolated but not analyzed
+    'rangelock_enqueue', # XXX having trouble repro'ing in dbg, nfssvc3.txt
+    'vfs_export', # XXX nfssvc4.txt
+    'nfsrv_setupstable', # XXX
+    'sys_connect', # XXX
+    'kern_getsockopt', # XXX
+    'kern_bindat', # XXX
+    'kern_recvit', # XXX
+    'kern_sendit', # XXX
+    'sys_listen', # XXX
+    'kern_setsockopt', # XXX
 ]
 
 def isKnown(x) :

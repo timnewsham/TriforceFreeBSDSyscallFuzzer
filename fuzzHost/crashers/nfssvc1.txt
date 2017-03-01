@@ -1,0 +1,47 @@
+summary:
+  negative nid_namelen causes large malloc and crash
+
+
+Breakpoint 4, nfssvc_idname (nidp=0xfffffe000021ba60)
+3267        newusrp = malloc(sizeof(struct nfsusrgrp) + nidp->nid_namelen,
+(gdb) print nidp->nid_namelen
+$9 = -256
+(gdb) print sizeof(struct nfsusrgrp)
+$10 = 64
+(gdb) print sizeof(struct nfsusrgrp) + nidp->nid_namelen
+$11 = -192
+
+
+
+
+
+Fatal trap 9: general protection fault while in kernel mode
+cpuid = 0; apic id = 00
+instruction pointer = 0x20:0xffffffff809a57ff
+stack pointer           = 0x28:0xfffffe0011ddd8c0
+frame pointer           = 0x28:0xfffffe0011ddd900
+code segment        = base 0x0, limit 0xfffff, type 0x1b
+            = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags    = interrupt enabled, IOPL = 0
+current process     = 26 (driver)
+trap number     = 9
+panic: general protection fault
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff8098e390 at kdb_backtrace+0x60
+#1 0xffffffff80951066 at vpanic+0x126
+#2 0xffffffff80950f33 at panic+0x43
+#3 0xffffffff80d55f7b at trap_fatal+0x36b
+#4 0xffffffff80d55bfd at trap+0x77d
+#5 0xffffffff80d3b8d2 at calltrap+0x8
+#6 0xffffffff80bd33f3 at kmem_malloc+0x33
+#7 0xffffffff80bcc126 at uma_large_malloc+0x46
+#8 0xffffffff80932ed4 at malloc+0x44
+#9 0xffffffff8084c8e5 at nfssvc_idname+0x35
+#10 0xffffffff8084f7d2 at nfssvc_nfscommon+0x2a2
+#11 0xffffffff80b41c3c at sys_nfssvc+0x9c
+#12 0xffffffff80d5694f at amd64_syscall+0x40f
+#13 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+
+
+

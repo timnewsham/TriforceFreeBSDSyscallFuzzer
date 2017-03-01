@@ -1,0 +1,77 @@
+summary:
+  calling nfssvc call with the wrong flags leads to derefrencing null ptr
+
+
+nfsusernamehash is allocated in nfssvc_idname only if
+    if (nidp->nid_flag & NFSID_INITIALIZE) {
+#define NFSID_INITIALIZE    0x0001
+
+but used:
+    if (nidp->nid_flag & (NFSID_DELUID | NFSID_ADDUID)) {
+        /* Must lock all username hash lists first, to avoid a LOR. */
+        for (i = 0; i < nfsrv_lughashsize; i++)
+            mtx_lock(&nfsusernamehash[i].mtx);
+
+so if you dont specify the right flags, you get NULL pointer deref
+and a crash.
+
+
+(gdb) print *uap
+$12 = {flag_l_ = 0xfffffe000021bb80 "", flag = 60928, 
+  flag_r_ = "\000\000\000", argp_l_ = 0xfffffe000021bb88 "N\200f", 
+  argp = 0x80066804e "\202ellU Wo\222l", 
+  argp_r_ = 0xfffffe000021bb90 "X\240\300"}
+
+
+$13 = {nid_flag = 1819043202, nid_uid = 4294966784, nid_gid = 0,
+  nid_usermax = 0, nid_usertimeout = 34388224,
+  nid_name = 0x122 <error: Cannot access memory at address 0x122>,
+  nid_namelen = 2210480, nid_grps = 0xffffffff8093a0e6 <priv_check_cred+38>,
+  nid_ngroup = 60928}
+(gdb) print onid
+$14 = {nid_flag = 1819043202, nid_uid = 1867980885, nid_gid = 27794,
+  nid_usermax = 0, nid_usertimeout = 0, nid_name = 0x0, nid_namelen = 0}
+
+
+
+        /* Must lock all username hash lists first, to avoid a LOR. */
+        for (i = 0; i < nfsrv_lughashsize; i++)
+            mtx_lock(&nfsusernamehash[i].mtx);   <--- fault
+
+   0xffffffff8084d179 mov    0xffffffff815c3850,%rcx
+   0xffffffff8084d181 mov    $0x4,%eax
+   0xffffffff8084d186 lock cmpxchg %rsi,(%rcx,%rbx,1)  <--- fault
+
+(gdb) print nfsusernamehash
+$22 = (struct nfsrv_lughash *) 0x0
+
+
+
+Fatal trap 12: page fault while in kernel mode
+cpuid = 0; apic id = 00
+fault virtual address   = 0x18
+fault code      = supervisor read data, page not present
+instruction pointer = 0x20:0xffffffff8084d186
+stack pointer           = 0x28:0xfffffe000021b9c0
+
+frame pointer           = 0x28:0xfffffe000021ba20
+code segment        = base 0x0, limit 0xfffff, type 0x1b
+            = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags    = interrupt enabled, IOPL = 0
+current process     = 21 (driver)
+trap number     = 12
+panic: page fault
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff8098e390 at kdb_backtrace+0x60
+#1 0xffffffff80951066 at vpanic+0x126
+#2 0xffffffff80950f33 at panic+0x43
+#3 0xffffffff80d55f7b at trap_fatal+0x36b
+#4 0xffffffff80d5627d at trap_pfault+0x2ed
+#5 0xffffffff80d558fa at trap+0x47a
+#6 0xffffffff80d3b8d2 at calltrap+0x8
+#7 0xffffffff8084f7d2 at nfssvc_nfscommon+0x2a2
+#8 0xffffffff80b41c3c at sys_nfssvc+0x9c
+#9 0xffffffff80d5694f at amd64_syscall+0x40f
+#10 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+
