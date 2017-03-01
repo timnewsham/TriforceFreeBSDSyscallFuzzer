@@ -21,17 +21,20 @@ known = [
     'malloc\+0x[0-9a-f]+ nfssvc_idname', # XXX nfssvc1.txt
     'calltrap\+0x[0-9a-f]+ nfssvc_nfscommon', # XXX nfssvc2.txt
 
+    # these are all related to nfssvc trashing the fd
+    'nfssvc.* sys_connect', # XXX connect.bin, connect.txt
+    'nfssvc.*kern_getsockopt', # XXX
+    'nfssvc.*kern_bindat', # XXX
+    'nfssvc.*kern_recvit', # XXX
+    'nfssvc.*kern_sendit', # XXX
+    'nfssvc.*sys_listen', # XXX
+    'nfssvc.*kern_setsockopt', # XXX
+
+    'nfssvc call.*nfssvc call', # XXX I think this one too
+
     # isolated but not analyzed
     'rangelock_enqueue', # XXX having trouble repro'ing in dbg, nfssvc3.txt
     'vfs_export', # XXX nfssvc4.txt
-    'nfsrv_setupstable', # XXX
-    'sys_connect', # XXX
-    'kern_getsockopt', # XXX
-    'kern_bindat', # XXX
-    'kern_recvit', # XXX
-    'kern_sendit', # XXX
-    'sys_listen', # XXX
-    'kern_setsockopt', # XXX
 ]
 
 def isKnown(x) :
