@@ -1,0 +1,122 @@
+summary: if you pass in a sock into sys_nfssvc and later use it for
+  normal socket ops after the kernel has claimed it, it will panic the
+  kernel on a null pointer deref
+
+
+
+requires sys_nfssvc and sys_connect to trigger
+
+
+kern_connectat (td=0xfffff8000238f960, dirfd=-100, fd=4, 
+    sa=0xfffff80002438070) at /usr/src/sys/kern/uipc_syscalls.c:633
+
+640     if (so->so_state & SS_ISCONNECTING) {
+(gdb) 
+Xpage () at /usr/src/sys/amd64/amd64/exception.S:299
+299     movl    $T_PAGEFLT,TF_TRAPNO(%rsp)
+
+
+so is null, so->so_state is at 0xa
+
+Fatal trap 12: page fault while in kernel mode
+cpuid = 0; apic id = 00
+fault virtual address   = 0xa
+fault code      = supervisor read data, page not present
+instruction pointer = 0x20:0xffffffff809d1de2
+stack pointer           = 0x28:0xfffffe000021ba20
+frame pointer           = 0x28:0xfffffe000021ba90
+code segment        = base 0x0, limit 0xfffff, type 0x1b
+            = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags    = interrupt enabled, IOPL = 0
+current process     = 21 (driver)
+trap number     = 12
+panic: page fault
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff8098e390 at kdb_backtrace+0x60
+#1 0xffffffff80951066 at vpanic+0x126
+#2 0xffffffff80950f33 at panic+0x43
+#3 0xffffffff80d55f7b at trap_fatal+0x36b
+#4 0xffffffff80d5627d at trap_pfault+0x2ed
+#5 0xffffffff80d558fa at trap+0x47a
+#6 0xffffffff80d3b8d2 at calltrap+0x8
+#7 0xffffffff809d1cd7 at sys_connect+0x77
+#8 0xffffffff80d5694f at amd64_syscall+0x40f
+#9 0xffffffff80d3bbbb at Xfast_syscall+0xfb
+
+
+----
+arg 0: argStdFile 3 - type 17
+arg 1: argAlloc 800c0a000 - allocated 303030 bytes
+arg 2: argBuflen 303030
+arg 3: argNum 3030303030303030
+arg 4: argNum 3030303030303030
+arg 5: argNum 3030303030303030
+arg 6: argNum 3030303030303030
+call 155
+arg 0: argNum 3030303030303030
+arg 1: argNum 400108
+arg 2: argNum 3030303030303030
+arg 3: argNum 3030303030303030
+arg 4: argNum 3030303030303030
+arg 5: argNum 3030303030303030
+arg 6: argNum 3030303030303030
+call 98
+arg 0: argStdFile 4 - type 17
+arg 1: argAlloc 801006000 - allocated 303030 bytes
+arg 2: argStdFile 5 - type 0
+arg 3: argNum 3030303030303030
+arg 4: argNum 3030303030303030
+arg 5: argStdFile 6 - type 1
+arg 6: argAlloc 801406000 - allocated 303030 bytes
+read 157 bytes, parse result 0 nrecs 3
+
+
+
+
+sys_nfssvc(struct thread *td, struct nfssvc_args *uap)
+    else if ((uap->flag & (NFSSVC_NFSDNFSD | NFSSVC_NFSDADDSOCK |
+        NFSSVC_PUBLICFH | NFSSVC_V4ROOTEXPORT | NFSSVC_NOPUBLICFH |
+        NFSSVC_STABLERESTART | NFSSVC_ADMINREVOKE |
+        NFSSVC_DUMPCLIENTS | NFSSVC_DUMPLOCKS | NFSSVC_BACKUPSTABLE |
+        NFSSVC_SUSPENDNFSD | NFSSVC_RESUMENFSD)) &&
+        nfsd_call_nfsd != NULL)
+        error = (*nfsd_call_nfsd)(td, uap);
+
+nfssvc_nfscl (td=0xfffff80002390000, uap=0xfffffe000021bb80)
+    at /usr/src/sys/fs/nfsclient/nfs_clport.c:1235
+
+    if (uap->flag & NFSSVC_CBADDSOCK) {
+
+        error = fget(td, nfscbdarg.sock,
+            cap_rights_init(&rights, CAP_SOCK_CLIENT), &fp);
+
+
+
+
+(gdb) print nfscbdarg     
+$17 = {sock = 4, name = 0x71 <error: Cannot access memory at address 0x71>, 
+  namelen = 16, port = 0}
+4 is af_inet6, sock_stream
+(gdb) print *fp
+$21 = {f_data = 0xfffff800023f42b8, f_ops = 0xffffffff814b24a8 <socketops>, 
+  f_cred = 0xfffff800020cb900, f_vnode = 0x0, f_type = 2, f_vnread_flags = 0, 
+  f_flag = 3, f_count = 3, f_seqcount = 0, f_nextoff = 0, f_vnun = {
+    fvn_cdevpriv = 0x0, fvn_advice = 0x0}, f_offset = 0, f_label = 0x0}
+
+        error = nfscbd_addsock(fp); <- clears out fp
+        fdrop(fp, td);
+
+now fp changed to
+$25 = {f_data = 0x0, f_ops = 0xffffffff814a2428 <badfileops>, 
+  f_cred = 0xfffff800020cb900, f_vnode = 0x0, f_type = 2, f_vnread_flags = 0, 
+  f_flag = 3, f_count = 2, f_seqcount = 0, f_nextoff = 0, f_vnun = {
+    fvn_cdevpriv = 0x0, fvn_advice = 0x0}, f_offset = 0, f_label = 0x0}
+
+
+
+
+
+later sys_connect(4, buf, 5) crashes on null ptr
+
+
