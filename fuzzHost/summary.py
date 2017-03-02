@@ -20,6 +20,7 @@ known = [
     'calltrap\+0x[0-9a-f]+ linker_load_module', # mount/kldload, mount.txt
     'malloc\+0x[0-9a-f]+ nfssvc_idname', # XXX nfssvc1.txt
     'calltrap\+0x[0-9a-f]+ nfssvc_nfscommon', # XXX nfssvc2.txt
+    'calltrap\+0x[0-9a-f]+ vfs_export', # XXX nfssvc2.txt
 
     # these are all related to nfssvc trashing the fd
     'nfssvc.* sys_connect', # connect.bin, connect.txt
@@ -32,8 +33,8 @@ known = [
     'nfssvc call.*nfssvc call', # XXX I think this one too
 
     # isolated but not analyzed
+    'vfs_export', # XXX there are more!
     'rangelock_enqueue', # XXX having trouble repro'ing in dbg, nfssvc3.txt
-    'vfs_export', # XXX nfssvc4.txt
 ]
 
 def isKnown(x) :
