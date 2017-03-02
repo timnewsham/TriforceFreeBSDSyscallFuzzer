@@ -1,3 +1,14 @@
+summary:
+   null pointer deref caused by uninitialized mp
+
+reported: 20170302 - https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=217508
+see expcrash.c
+
+
+happens in VFS_PROLOGUE from VFS_EPILOGUE called by vfs_setpublicfs
+
+mp is &nfsv4root_mnt
+
 
 Fatal trap 12: page fault while in kernel mode
 cpuid = 0; apic id = 00
@@ -41,6 +52,136 @@ vfs_setpublicfs (mp=<optimized out>, nep=<optimized out>,
     argp=<optimized out>, mp=<optimized out>, nep=<optimized out>, 
     argp=<optimized out>) at /usr/src/sys/kern/vfs_export.c:356
 
-378     if ((error = VFS_ROOT(mp, LK_EXCLUSIVE, &rvp)))
+378     if ((error = VFS_ROOT(mp, LK_EXCLUSIVE, &rvp)))  <-- crash
 
+   0xffffffff809e958d <vfs_setpublicfs+93>: mov    0x40(%r15),%rax
+   0xffffffff809e9591 <vfs_setpublicfs+97>: testb  $0x1,0x2b(%rax) <-- crash
+
+(gdb) p/x $r15
+$11 = 0xffffffff816913f0
+(gdb) p/x $rax
+$12 = 0x0
+
+(gdb) print mp->mnt_vfc
+$13 = (struct vfsconf *) 0x0
+
+
+
+#define VFS_ROOT(MP, FLAGS, VPP) ({                 \
+    int _rc;                            \
+                                    \
+    VFS_PROLOGUE(MP);                       \
+    _rc = (*(MP)->mnt_op->vfs_root)(MP, FLAGS, VPP);        \
+    VFS_EPILOGUE(MP);                       \
+    _rc; })
+
+#define VFS_PROLOGUE(MP)    do {                    \
+    struct mount *mp__;                     \
+    int _enable_stops;                      \
+                                    \
+    mp__ = (MP);                            \
+    _enable_stops = (mp__ != NULL &&                \
+        (mp__->mnt_vfc->vfc_flags & VFCF_SBDRY) && sigdeferstop())
+
+
+
+
+(gdb) print *argp
+$2 = {ex_flags = -1330595475, ex_root = 1918984765, ex_anon = {
+    cr_version = 0, cr_uid = 0, cr_ngroups = 0, cr_groups = {
+      0 <repeats 16 times>}, _cr_unused1 = 0x0}, ex_addr = 0x0, 
+  ex_addrlen = 0 '\000', ex_mask = 0x0, ex_masklen = 0 '\000', 
+  ex_indexfile = 0x0, ex_numsecflavors = 0, ex_secflavors = {0, 0, 0, 0, 0}}
+
+
+
+
+(gdb) print *mp
+$14 = {mnt_mtx = {lock_object = {lo_name = 0xffffffff80fc945c "nfs4mnt", 
+      lo_flags = 16973824, lo_data = 0, lo_witness = 0x0}, mtx_lock = 4}, 
+  mnt_gen = 0, mnt_list = {tqe_next = 0x0, tqe_prev = 0x0}, mnt_op = 0x0, 
+  mnt_vfc = 0x0, mnt_vnodecovered = 0x0, mnt_syncer = 0x0, mnt_ref = 0, 
+  mnt_nvnodelist = {tqh_first = 0x0, 
+    tqh_last = 0xffffffff81691450 <nfsv4root_mnt+96>}, 
+  mnt_nvnodelistsize = 0, mnt_activevnodelist = {tqh_first = 0x0, 
+    tqh_last = 0xffffffff81691468 <nfsv4root_mnt+120>}, 
+  mnt_activevnodelistsize = 0, mnt_writeopcount = 0, mnt_kern_flag = 0, 
+  mnt_flag = 257, mnt_opt = 0xffffffff8169b8c0 <nfsv4root_opt>, 
+  mnt_optnew = 0xffffffff8169b8b0 <nfsv4root_newopt>, mnt_maxsymlinklen = 0, 
+  mnt_stat = {f_version = 0, f_type = 0, f_flags = 0, f_bsize = 0, 
+    f_iosize = 0, f_blocks = 0, f_bfree = 0, f_bavail = 0, f_files = 0, 
+    f_ffree = 0, f_syncwrites = 0, f_asyncwrites = 0, f_syncreads = 0, 
+    f_asyncreads = 0, f_spare = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 
+    f_namemax = 0, f_owner = 0, f_fsid = {val = {0, 0}}, 
+    f_charspare = '\000' <repeats 79 times>, 
+    f_fstypename = '\000' <repeats 15 times>, 
+    f_mntfromname = '\000' <repeats 87 times>, 
+    f_mntonname = '\000' <repeats 87 times>}, mnt_cred = 0x0, mnt_data = 0x0, 
+  mnt_time = 0, mnt_iosize_max = 0, mnt_export = 0xfffff800023f0800, 
+  mnt_label = 0x0, mnt_hashseed = 0, mnt_lockref = 0, 
+  mnt_secondary_writes = 0, mnt_secondary_accwrites = 0, 
+  mnt_susp_owner = 0x0, mnt_gjprovider = 0x0, mnt_explock = {lock_object = {
+      lo_name = 0xffffffff80fc9464 "explock", lo_flags = 108199936, 
+      lo_data = 0, lo_witness = 0x0}, lk_lock = 18446735277653819392, 
+    lk_exslpfail = 0, lk_timo = 0, lk_pri = 96}, mnt_upper_link = {
+    tqe_next = 0x0, tqe_prev = 0x0}, mnt_uppers = {tqh_first = 0x0, 
+    tqh_last = 0x0}}
+
+
+oap
+$16 = {flag_l_ = 0xfffffe000021bb80 "#@", flag = 16419, 
+  flag_r_ = "\335\000\000", argp_l_ = 0xfffffe000021bb88 "F\200f", 
+  argp = 0x800668046 "\224his", argp_r_ = 0xfffffe000021bb90 "\020"}
+$17 = {flag_l_ = 0xfffffe000021bb80, flag = 0x4023, flag_r_ = {0xdd, 0x0, 
+    0x0, 0x0}, argp_l_ = 0xfffffe000021bb88, argp = 0x800668046, 
+  argp_r_ = 0xfffffe000021bb90}
+
+flag: NFSSVC_V4ROOTEXPORT NFSSVC_NOPUBLICFH 2 1
+
+
+sys_nfssvc
+102     else if ((uap->flag & (NFSSVC_NFSDNFSD | NFSSVC_NFSDADDSOCK |
+108         error = (*nfsd_call_nfsd)(td, uap);
+
+nfssvc_nfsd
+3088        } else if (uap->flag & NFSSVC_NFSDNFSD) {
+3099            error = nfssvc_srvcall(td, uap, td->td_ucred);
+
+nfssvc_srvcall
+3131        } else if (uap->flag & NFSSVC_V4ROOTEXPORT) {
+3132            error = copyin(uap->argp,(caddr_t)&export,
+3135                error = nfsrv_v4rootexport(&export, cred, p);
+
+(gdb) p/x export
+$23 = {fspec = 0xc9ff000073696894, export = {ex_flags = 0xb0b0b96d, 
+    ex_root = 0x7261623d, ex_anon = {cr_version = 0x0, cr_uid = 0x0, 
+      cr_ngroups = 0x0, cr_groups = {0x0 <repeats 16 times>}, 
+      _cr_unused1 = 0x0}, ex_addr = 0x0, ex_addrlen = 0x0, ex_mask = 0x0, 
+    ex_masklen = 0x0, ex_indexfile = 0x0, ex_numsecflavors = 0x0, 
+    ex_secflavors = {0x0, 0x0, 0x0, 0x0, 0x0}}}
+(sizeof = 168)
+
+nfsrv_v4rootexport
+2876        error = vfs_export(&nfsv4root_mnt, &nfsexargp->export);
+
+vfs_export
+304     if (argp->ex_flags & MNT_EXPORTED) {
+..
+309         if (argp->ex_flags & MNT_EXPUBLIC) {
+310             if ((error = vfs_setpublicfs(mp, nep, argp)) != 0)
+
+vfs_setpublicfs
+378     if ((error = VFS_ROOT(mp, LK_EXCLUSIVE, &rvp)))
+CRASH
+
+
+ex_numsecflavors = 0
+ex_flags = MNT_EXPORTED | MNT_EXPUBLIC
+
+
+struct nfsex_args args;
+memset(&args, 0, sizeof args);
+args.export.ex_flags = MNT_EXPORTED | MNT_EXPUBLIC;
+//nfssvc(NFSSVC_V4ROOTEXPORT | NFSSVC_NOPUBLICFH, &exp);
+nfssvc(NFSSVC_V4ROOTEXPORT, &exp);
 
