@@ -1,0 +1,44 @@
+Some notes on getting started with analyzing freebsd crashes.
+
+- Grab TriforceAFL and build it
+- Grab git@gitlab.na.nccgroup.com:newsham/TriforceFreeBSDSyscallFuzzer.git
+  - put it at the same top level dir where TriforceAFL is
+  - enter the fuzzHost subdir.  This is where the action is
+    - run make
+    - read the debugnotes.txt
+- Grab https://gitlab.na.nccgroup.com/newsham/Triforce/blob/master/bin/filt
+  script.  It will be helpful for sorting through findings later
+- Get access to the fuzz host.  Importnat files are in ~/proj/fbsd/fuzzHost
+  - Grab some important files from the fuzz host:
+    - ~/proj/fbsd/usr  - tar this up and copy it to your fbsd dir
+    - ~/proj/fbsd/fuzzHost/disk.bin - copy to your fuzzHost dir
+  - Run tmux, go to this dir and run the ./repro script.  
+    switch to another window, it will spam lots of output
+    when script is done, kill the window you ran it in
+- Pull down important repro files for local analysis
+    #!/bin/sh
+    ssh tn-fuzzserv "cd proj/fbsd/fuzzHost; tar -czf - outputs/*/crashes/" |tar -xzvf -
+    scp tn-fuzzserv:proj/fbsd/fuzzHost/typescript .
+- Run ./summary.py  - It will show you interesting new crashes that
+  werent yet analyzed.  
+  - Get intimate with this script.  It is your friend
+  - See the filters listed at the top of the script. These are
+    issues that were already analyzed.  
+    A handy way to sort issues is to add new filters at the bottom of
+    the list until you filter everything out.  Now go back and analyze
+    the results from one at a time, by commenting out that filter.
+  - run: SHOWFN=1 ./summary.py  to see which files were involved
+- Once you have a file you care about you want to analyze just
+  this file. 
+  - run "filt -m filename <typescript" to see just the repro output
+    from this one file.  It should include a stack trace.
+    You can start reading code now.
+  - Make a convenient copy somewhere nearby (to avoid using its horribly 
+    long filename).  
+  - To debug the kernel, uuencode the file and follow the debugnotes.txt
+    instructions. 
+    - note: you can permanently add files to the disk.bin by runing
+      runSh -p (persistent).  You might want to do this once to setup
+      any important helper scripts like "runTest".  Then shutdown
+      cleanly and runSh without -p for normal testing.
+
